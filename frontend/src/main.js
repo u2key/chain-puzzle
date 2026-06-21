@@ -87,7 +87,9 @@ class GameScene extends Phaser.Scene {
         this.isPaused = false;
         
         // Walls
-        this.matter.world.setBounds(0, -2000, 1080, 3920, 100, true, true, false, true);
+        this.matter.add.rectangle(540, 1970, 1080, 100, { isStatic: true }); // Bottom
+        this.matter.add.rectangle(-50, 960, 100, 4000, { isStatic: true }); // Left
+        this.matter.add.rectangle(1130, 960, 100, 4000, { isStatic: true }); // Right
 
         // UI
         this.scoreText = this.add.text(40, 40, 'Score: 0', { fontSize: '48px', fill: '#fff', fontStyle: 'bold' });
