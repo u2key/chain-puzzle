@@ -36,12 +36,18 @@ function simulatePointerEvent(type, x, y) {
         clientX: clientX,
         clientY: clientY,
         button: type === 'pointerup' ? -1 : 0,
-        buttons: type === 'pointerup' ? 0 : 1
+        buttons: type === 'pointerup' ? 0 : 1,
+        pointerId: 1,
+        isPrimary: true
     });
     canvas.dispatchEvent(event);
 }
 
 const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+
+function disableButtons(disabled) {
+    document.querySelectorAll('button').forEach(btn => btn.disabled = disabled);
+}
 
 document.getElementById('btn-login').addEventListener('click', async () => {
     log('Starting Auto Login...');
@@ -98,70 +104,80 @@ function findValidChain(gems, minLength) {
 
 // TC-SC-02 (3-Chain)
 document.getElementById('btn-test-tc-sc-02').addEventListener('click', async () => {
-    log('Running TC-SC-02: 3-Chain Score Test...');
-    const win = iframe.contentWindow;
-    
-    const game = win.gameInstance;
-    if (!game) {
-        log('Game instance not running!', 'error');
-        return;
-    }
-    
-    const scene = game.scene.getScene('GameScene');
-    const initialScore = scene.score;
-    log(`Initial Score: ${initialScore}`);
-    
-    // Find 3 validly connected gems
-    const targetGems = findValidChain(scene.gems, 3);
-    
-    if (!targetGems) {
-        log('Could not find 3 adjacent gems of the same type. Wait or retry.', 'error');
-        return;
-    }
-    
-    log(`Found 3 gems. Attempting chain trace...`);
-    
-    // Simulate Drag
-    simulatePointerEvent('pointerdown', targetGems[0].x, targetGems[0].y);
-    await sleep(200);
-    simulatePointerEvent('pointermove', targetGems[1].x, targetGems[1].y);
-    await sleep(200);
-    simulatePointerEvent('pointermove', targetGems[2].x, targetGems[2].y);
-    await sleep(200);
-    simulatePointerEvent('pointerup', targetGems[2].x, targetGems[2].y);
-    
-    await sleep(500); // Wait for score calculation
-    
-    const finalScore = scene.score;
-    const expectedAdd = 300; // 3-chain is 300 points
-    
-    if (finalScore === initialScore + expectedAdd) {
-        log(`TC-SC-02 Passed: Score increased by ${expectedAdd} (Now: ${finalScore})`, 'success');
-    } else {
-        log(`TC-SC-02 Failed: Expected +${expectedAdd}, got +${finalScore - initialScore}`, 'error');
+    disableButtons(true);
+    try {
+        log('Running TC-SC-02: 3-Chain Score Test...');
+        const win = iframe.contentWindow;
+        
+        const game = win.gameInstance;
+        if (!game) {
+            log('Game instance not running!', 'error');
+            return;
+        }
+        
+        const scene = game.scene.getScene('GameScene');
+        const initialScore = scene.score;
+        log(`Initial Score: ${initialScore}`);
+        
+        // Find 3 validly connected gems
+        const targetGems = findValidChain(scene.gems, 3);
+        
+        if (!targetGems) {
+            log('Could not find 3 adjacent gems of the same type. Wait or retry.', 'error');
+            return;
+        }
+        
+        log(`Found 3 gems. Attempting chain trace...`);
+        
+        // Simulate Drag
+        simulatePointerEvent('pointerdown', targetGems[0].x, targetGems[0].y);
+        await sleep(100);
+        simulatePointerEvent('pointermove', targetGems[1].x, targetGems[1].y);
+        await sleep(100);
+        simulatePointerEvent('pointermove', targetGems[2].x, targetGems[2].y);
+        await sleep(100);
+        simulatePointerEvent('pointerup', targetGems[2].x, targetGems[2].y);
+        
+        await sleep(500); // Wait for score calculation
+        
+        const finalScore = scene.score;
+        const expectedAdd = 300; // 3-chain is 300 points
+        
+        if (finalScore === initialScore + expectedAdd) {
+            log(`TC-SC-02 Passed: Score increased by ${expectedAdd} (Now: ${finalScore})`, 'success');
+        } else {
+            log(`TC-SC-02 Failed: Expected +${expectedAdd}, got +${finalScore - initialScore}`, 'error');
+        }
+    } finally {
+        disableButtons(false);
     }
 });
 
 document.getElementById('btn-test-tc-pz-01').addEventListener('click', async () => {
-    log('Running TC-PZ-01: Pause State Test...');
-    const win = iframe.contentWindow;
-    const game = win.gameInstance;
-    if (!game) return log('Game not running!', 'error');
-    const scene = game.scene.getScene('GameScene');
-    
-    const timeBefore = scene.timeLeft;
-    scene.pauseGame();
-    log('Game Paused. Waiting 3 seconds...');
-    
-    await sleep(3000);
-    
-    const timeAfter = scene.timeLeft;
-    if (timeBefore === timeAfter && scene.isPaused) {
-        log(`TC-PZ-01 Passed: Timer did not decrease (${timeBefore} === ${timeAfter})`, 'success');
-    } else {
-        log(`TC-PZ-01 Failed: Timer changed from ${timeBefore} to ${timeAfter}`, 'error');
+    disableButtons(true);
+    try {
+        log('Running TC-PZ-01: Pause State Test...');
+        const win = iframe.contentWindow;
+        const game = win.gameInstance;
+        if (!game) return log('Game not running!', 'error');
+        const scene = game.scene.getScene('GameScene');
+        
+        const timeBefore = scene.timeLeft;
+        scene.pauseGame();
+        log('Game Paused. Waiting 3 seconds...');
+        
+        await sleep(3000);
+        
+        const timeAfter = scene.timeLeft;
+        if (timeBefore === timeAfter && scene.isPaused) {
+            log(`TC-PZ-01 Passed: Timer did not decrease (${timeBefore} === ${timeAfter})`, 'success');
+        } else {
+            log(`TC-PZ-01 Failed: Timer changed from ${timeBefore} to ${timeAfter}`, 'error');
+        }
+        
+        scene.resumeGame();
+        log('Game Resumed.');
+    } finally {
+        disableButtons(false);
     }
-    
-    scene.resumeGame();
-    log('Game Resumed.');
 });
