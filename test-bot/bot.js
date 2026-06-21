@@ -13,21 +13,38 @@ function getIframeDoc() {
 }
 
 // Simulate Mouse/Touch Events on Canvas
-function simulatePointerEvent(type, x, y) {
-    const doc = getIframeDoc();
-    const canvas = doc.querySelector('canvas');
+function simulatePointerEvent(game, type, x, y) {
+    const canvas = game.canvas;
     if (!canvas) {
         log('Canvas not found!', 'error');
         return;
     }
     const rect = canvas.getBoundingClientRect();
     
-    // Scale coordinates from game resolution (1080x1920) to actual iframe canvas display size
-    const scaleX = rect.width / 1080;
-    const scaleY = rect.height / 1920;
+    // Account for CSS object-fit: contain
+    const gameRatio = game.config.width / game.config.height;
+    const rectRatio = rect.width / rect.height;
     
-    const clientX = rect.left + (x * scaleX);
-    const clientY = rect.top + (y * scaleY);
+    let renderedWidth = rect.width;
+    let renderedHeight = rect.height;
+    let offsetX = 0;
+    let offsetY = 0;
+    
+    if (rectRatio > gameRatio) {
+        // Canvas DOM is wider than game aspect ratio -> pillarboxed (bars on left/right)
+        renderedWidth = rect.height * gameRatio;
+        offsetX = (rect.width - renderedWidth) / 2;
+    } else {
+        // Canvas DOM is taller than game aspect ratio -> letterboxed (bars on top/bottom)
+        renderedHeight = rect.width / gameRatio;
+        offsetY = (rect.height - renderedHeight) / 2;
+    }
+    
+    const finalScaleX = renderedWidth / game.config.width;
+    const finalScaleY = renderedHeight / game.config.height;
+    
+    const clientX = rect.left + offsetX + (x * finalScaleX);
+    const clientY = rect.top + offsetY + (y * finalScaleY);
     
     const event = new PointerEvent(type, {
         bubbles: true,
@@ -130,13 +147,13 @@ document.getElementById('btn-test-tc-sc-02').addEventListener('click', async () 
         log(`Found 3 gems. Attempting chain trace...`);
         
         // Simulate Drag
-        simulatePointerEvent('pointerdown', targetGems[0].x, targetGems[0].y);
+        simulatePointerEvent(game, 'pointerdown', targetGems[0].x, targetGems[0].y);
         await sleep(100);
-        simulatePointerEvent('pointermove', targetGems[1].x, targetGems[1].y);
+        simulatePointerEvent(game, 'pointermove', targetGems[1].x, targetGems[1].y);
         await sleep(100);
-        simulatePointerEvent('pointermove', targetGems[2].x, targetGems[2].y);
+        simulatePointerEvent(game, 'pointermove', targetGems[2].x, targetGems[2].y);
         await sleep(100);
-        simulatePointerEvent('pointerup', targetGems[2].x, targetGems[2].y);
+        simulatePointerEvent(game, 'pointerup', targetGems[2].x, targetGems[2].y);
         
         await sleep(500); // Wait for score calculation
         
