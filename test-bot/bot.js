@@ -118,7 +118,7 @@ function setupCustomGemsChain(scene, count, type = 1, isStatic = false) {
     const r = scene.registry.get('typesConfig')[type - 1].radius;
     
     for (let i = 0; i < count; i++) {
-        const x = startX + (i * r * 1.5);
+        const x = startX + (i * r * 0.95);
         const y = startY; 
         const imgKey = `gem_img_${type}`;
         const fallbackKey = `gem_fallback_${type}`;
@@ -814,9 +814,10 @@ const testCases = [
             const scene = getActiveScene();
             if (!scene) return { success: false, message: 'Game failed to start.' };
             
-            log('Force setting timeLeft to 1 second...');
+            log('Force setting timeLeft to 1 second and triggering tick...');
             scene.timeLeft = 1;
-            await sleep(2500); // Wait for transition with safety buffer
+            scene.tick();
+            await sleep(1000); // Wait for transition with safety buffer
             
             const resultScreen = doc.getElementById('result-screen');
             const rankingScreen = doc.getElementById('ranking-screen');
