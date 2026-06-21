@@ -59,11 +59,11 @@ class BootScene extends Phaser.Scene {
     preload() {
         // Generate gem textures using Canvas API
         const typesConfig = [
-            { color: 0xff0044, radius: 50 },
-            { color: 0x00ccff, radius: 55 },
-            { color: 0x33ff00, radius: 45 },
-            { color: 0xffcc00, radius: 60 },
-            { color: 0xcc00ff, radius: 40 }
+            { color: 0xff0044, radius: 90 },
+            { color: 0x00ccff, radius: 100 },
+            { color: 0x33ff00, radius: 85 },
+            { color: 0xffcc00, radius: 110 },
+            { color: 0xcc00ff, radius: 80 }
         ];
         
         typesConfig.forEach((cfg, i) => {
@@ -77,8 +77,14 @@ class BootScene extends Phaser.Scene {
             graphics.fillStyle(0xffffff, 0.4);
             graphics.fillCircle(r * 0.7, r * 0.7, r * 0.3);
             
-            graphics.generateTexture(`gem_${i+1}`, d, d);
+            graphics.generateTexture(`gem_fallback_${i+1}`, d, d);
+
+            // Attempt to load external image (404 will automatically fail gracefully)
+            this.load.image(`gem_img_${i+1}`, `./assets/gem_${i+1}.png`);
         });
+
+        // Store config for later use
+        this.registry.set('typesConfig', typesConfig);
     }
     create() {
         this.scene.start('GameScene');
@@ -113,7 +119,7 @@ class GameScene extends Phaser.Scene {
         this.timerEvent = this.time.addEvent({ delay: 1000, callback: this.tick, callbackScope: this, loop: true });
 
         // Spawn initial gems
-        this.maxGems = 140;
+        this.maxGems = 60;
         this.gems = [];
         this.spawnGems(this.maxGems);
         
@@ -132,17 +138,29 @@ class GameScene extends Phaser.Scene {
     }
 
     spawnGems(count) {
+        const typesConfig = this.registry.get('typesConfig');
         for (let i = 0; i < count; i++) {
             const x = Phaser.Math.Between(100, 980);
             const y = Phaser.Math.Between(-1500, -100);
             const type = Phaser.Math.Between(1, 5);
-            const gem = this.matter.add.image(x, y, `gem_${type}`, null, {
+            const r = typesConfig[type - 1].radius;
+            
+            const imgKey = `gem_img_${type}`;
+            const fallbackKey = `gem_fallback_${type}`;
+            // Use loaded image if available, otherwise use canvas generated texture
+            const finalKey = this.textures.exists(imgKey) ? imgKey : fallbackKey;
+
+            const gem = this.matter.add.image(x, y, finalKey, null, {
                 shape: 'circle',
                 restitution: 0.2,
                 friction: 0.05,
                 frictionAir: 0.01,
                 density: 0.001
             });
+            
+            // Scale the texture to fit the physics body
+            gem.setDisplaySize(r * 2, r * 2);
+
             gem.gemType = type;
             gem.spawnTime = this.time.now;
             gem.setInteractive();
@@ -179,7 +197,7 @@ class GameScene extends Phaser.Scene {
                 else if (!this.selectedGems.includes(gem)) {
                     const lastGem = this.selectedGems[this.selectedGems.length - 1];
                     const distance = Phaser.Math.Distance.Between(lastGem.x, lastGem.y, gem.x, gem.y);
-                    const avgDiameter = (lastGem.width + gem.width) / 2;
+                    const avgDiameter = (lastGem.displayWidth + gem.displayWidth) / 2;
                     if (gem.gemType === lastGem.gemType && distance <= avgDiameter * 1.2) {
                         this.selectedGems.push(gem);
                         gem.setTint(0x888888);
