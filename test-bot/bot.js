@@ -34,7 +34,9 @@ function simulatePointerEvent(type, x, y) {
         cancelable: true,
         pointerType: 'mouse',
         clientX: clientX,
-        clientY: clientY
+        clientY: clientY,
+        button: type === 'pointerup' ? -1 : 0,
+        buttons: type === 'pointerup' ? 0 : 1
     });
     canvas.dispatchEvent(event);
 }
@@ -56,15 +58,49 @@ document.getElementById('btn-login').addEventListener('click', async () => {
     }
 });
 
-// Example implementation of TC-SC-02 (3-Chain)
-// To fully implement Blackbox testing, the bot would ideally read the internal game state 
-// to know EXACTLY where the gems are, OR use computer vision. 
-// Since it's a DOM iframe, we can peek at the Phaser instance for precise testing.
+function findValidChain(gems, minLength) {
+    const adj = new Map();
+    gems.forEach(g1 => {
+        adj.set(g1, []);
+        gems.forEach(g2 => {
+            if (g1 !== g2 && g1.gemType === g2.gemType) {
+                const dist = Math.hypot(g1.x - g2.x, g1.y - g2.y);
+                const avgDiameter = (g1.displayWidth + g2.displayWidth) / 2;
+                if (dist <= avgDiameter * 1.2) {
+                    adj.get(g1).push(g2);
+                }
+            }
+        });
+    });
+
+    for (const start of gems) {
+        const path = [start];
+        const visited = new Set([start]);
+        
+        function dfs(current) {
+            if (path.length === minLength) return true;
+            for (const neighbor of adj.get(current)) {
+                if (!visited.has(neighbor)) {
+                    visited.add(neighbor);
+                    path.push(neighbor);
+                    if (dfs(neighbor)) return true;
+                    path.pop();
+                    visited.delete(neighbor);
+                }
+            }
+            return false;
+        }
+        
+        if (dfs(start)) return path;
+    }
+    return null;
+}
+
+// TC-SC-02 (3-Chain)
 document.getElementById('btn-test-tc-sc-02').addEventListener('click', async () => {
     log('Running TC-SC-02: 3-Chain Score Test...');
     const win = iframe.contentWindow;
     
-    // Peek into Phaser state (Gray-box approach for reliability in testing)
     const game = win.gameInstance;
     if (!game) {
         log('Game instance not running!', 'error');
@@ -75,18 +111,11 @@ document.getElementById('btn-test-tc-sc-02').addEventListener('click', async () 
     const initialScore = scene.score;
     log(`Initial Score: ${initialScore}`);
     
-    // Find 3 gems of the same type close to each other
-    let targetGems = [];
-    for (let type = 1; type <= 5; type++) {
-        const gemsOfType = scene.gems.filter(g => g.gemType === type);
-        if (gemsOfType.length >= 3) {
-            targetGems = gemsOfType.slice(0, 3); // Just grab 3, assuming they are close enough
-            break;
-        }
-    }
+    // Find 3 validly connected gems
+    const targetGems = findValidChain(scene.gems, 3);
     
-    if (targetGems.length < 3) {
-        log('Could not find 3 gems of the same type. Try restarting.', 'error');
+    if (!targetGems) {
+        log('Could not find 3 adjacent gems of the same type. Wait or retry.', 'error');
         return;
     }
     
