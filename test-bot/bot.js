@@ -113,12 +113,12 @@ function setupCustomGemsChain(scene, count, type = 1, isStatic = false) {
     });
     scene.gems = [];
     
-    const startX = 200;
+    const startX = 280;
     const startY = 800;
     const r = scene.registry.get('typesConfig')[type - 1].radius;
     
     for (let i = 0; i < count; i++) {
-        const x = startX + (i * r * 0.95);
+        const x = startX + (i * r * 0.75);
         const y = startY; 
         const imgKey = `gem_img_${type}`;
         const fallbackKey = `gem_fallback_${type}`;
@@ -366,10 +366,10 @@ const testCases = [
             
             scene.handlePointerDown({ x: targetGems[0].x, y: targetGems[0].y });
             for (let i = 1; i < 10; i++) {
-                await sleep(50);
+                await sleep(80);
                 scene.handlePointerMove({ x: targetGems[i].x, y: targetGems[i].y });
             }
-            await sleep(50);
+            await sleep(80);
             
             scene.handlePointerUp({ x: targetGems[9].x, y: targetGems[9].y });
             
@@ -587,9 +587,9 @@ const testCases = [
             const targetGems = scene.gems;
             
             scene.handlePointerDown({ x: targetGems[0].x, y: targetGems[0].y });
-            await sleep(50);
+            await sleep(100);
             scene.handlePointerMove({ x: targetGems[1].x, y: targetGems[1].y });
-            await sleep(50);
+            await sleep(100);
             scene.handlePointerMove({ x: targetGems[2].x, y: targetGems[2].y });
             
             const countDuringDrag = scene.gems.length;
@@ -613,8 +613,8 @@ const testCases = [
             const scene = getActiveScene();
             if (!scene) return { success: false, message: 'Game not running.' };
             
-            const gem = scene.gems[0];
-            if (!gem) return { success: false, message: 'No gems available in world.' };
+            const gem = scene.gems.find(g => g && g.body && g.y < 1700);
+            if (!gem) return { success: false, message: 'No mid-air gems found with y < 1700.' };
             
             // Simulate static stacking state without modifying friction which blocks movement
             gem.spawnTime = scene.time.now - 4000; // set spawn older than 3s boundary
@@ -661,26 +661,26 @@ const testCases = [
         run: async () => {
             const testUser = `BotUser_${Math.floor(Math.random() * 90000) + 10000}`;
             
-            log(`Submitting 10,000 points for ${testUser}...`);
+            log(`Submitting 9,991,000 points for ${testUser}...`);
             await fetch('http://localhost:25563/api/score', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ username: testUser, score: 10000 })
+                body: JSON.stringify({ username: testUser, score: 9991000 })
             });
             
-            log(`Submitting new high score of 15,000 for ${testUser}...`);
+            log(`Submitting new high score of 9,992,000 for ${testUser}...`);
             await fetch('http://localhost:25563/api/score', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ username: testUser, score: 15000 })
+                body: JSON.stringify({ username: testUser, score: 9992000 })
             });
             
             const rankRes = await fetch('http://localhost:25563/api/ranking');
             const data = await rankRes.json();
             
             const userEntries = data.ranking.filter(r => r.username === testUser);
-            if (userEntries.length === 1 && userEntries[0].score === 15000) {
-                return { success: true, message: `Verified: Unique record stored with updated high score (15,000).` };
+            if (userEntries.length === 1 && userEntries[0].score === 9992000) {
+                return { success: true, message: `Verified: Unique record stored with updated high score (9,992,000).` };
             }
             return { success: false, message: `Duplicate checking failed. Found records: ${userEntries.length}, high score: ${userEntries[0]?.score}` };
         }
@@ -692,26 +692,26 @@ const testCases = [
         run: async () => {
             const testUser = `BotUser_${Math.floor(Math.random() * 90000) + 10000}`;
             
-            log(`Submitting 12,000 points for ${testUser}...`);
+            log(`Submitting 9,993,000 points for ${testUser}...`);
             await fetch('http://localhost:25563/api/score', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ username: testUser, score: 12000 })
+                body: JSON.stringify({ username: testUser, score: 9993000 })
             });
             
-            log(`Submitting lower score of 4,000 for ${testUser}...`);
+            log(`Submitting lower score of 9,990,100 for ${testUser}...`);
             await fetch('http://localhost:25563/api/score', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ username: testUser, score: 4000 })
+                body: JSON.stringify({ username: testUser, score: 9990100 })
             });
             
             const rankRes = await fetch('http://localhost:25563/api/ranking');
             const data = await rankRes.json();
             
             const userEntries = data.ranking.filter(r => r.username === testUser);
-            if (userEntries.length === 1 && userEntries[0].score === 12000) {
-                return { success: true, message: `Verified: Lower score ignored. Ranking retained 12,000.` };
+            if (userEntries.length === 1 && userEntries[0].score === 9993000) {
+                return { success: true, message: `Verified: Lower score ignored. Ranking retained 9,993,000.` };
             }
             return { success: false, message: `Lower score check failed. Found records: ${userEntries.length}, score: ${userEntries[0]?.score}` };
         }
@@ -809,7 +809,7 @@ const testCases = [
             const startBtn = doc.getElementById('start-btn');
             input.value = 'TimeupTester';
             startBtn.click();
-            await sleep(1000);
+            await sleep(2000);
             
             const scene = getActiveScene();
             if (!scene) return { success: false, message: 'Game failed to start.' };
