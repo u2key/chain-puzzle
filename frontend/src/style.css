@@ -183,6 +183,14 @@ li {
   justify-content: space-between;
 }
 
+.your-rank {
+  font-size: 1.2rem;
+  font-weight: bold;
+  color: #fde047;
+  margin-bottom: 15px;
+  text-align: center;
+}
+
 .spinner {
   width: 50px;
   height: 50px;

@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <title>Physics Puzzle Game</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="./frontend/src/style.css">
+    <link rel="stylesheet" href="./frontend/src/style.css?v=2">
   </head>
   <body>
     <div id="app-container">
@@ -42,10 +42,12 @@
         <!-- Ranking Screen -->
         <div id="ranking-screen" class="screen">
           <h2>Global Rankings</h2>
-          <div class="your-rank">Your Rank: <span id="your-rank-val">-</span></div>
-          <ul id="final-ranking-list" class="ranking-list">
-             <li>Loading...</li>
-          </ul>
+          <div class="ranking-board">
+            <div class="your-rank">Your Rank: <span id="your-rank-val">-</span></div>
+            <ul id="final-ranking-list" class="ranking-list">
+               <li>Loading...</li>
+            </ul>
+          </div>
           <button id="back-title-btn" class="btn primary">Back to Title</button>
         </div>
 
@@ -58,6 +60,6 @@
       </div>
     </div>
     <script src="https://cdn.jsdelivr.net/npm/phaser@3.80.1/dist/phaser.js"></script>
-    <script type="module" src="./frontend/src/main.js"></script>
+    <script type="module" src="./frontend/src/main.js?v=2"></script>
   </body>
 </html>
