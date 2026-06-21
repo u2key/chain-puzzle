@@ -49,6 +49,7 @@ function initGame() {
     };
     
     gameInstance = new Phaser.Game(config);
+    window.gameInstance = gameInstance; // Expose for testing bot
 }
 
 // Scene: Boot
