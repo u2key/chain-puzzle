@@ -7,22 +7,204 @@
 body {
   width: 100vw;
   height: 100vh;
-  background-color: #1a1a1a;
+  background-color: #0f172a;
   overflow: hidden;
   display: flex;
   justify-content: center;
   align-items: center;
   font-family: 'Inter', sans-serif;
+  color: #fff;
 }
 
-#app {
+#app-container {
+  position: relative;
   width: 100%;
   height: 100%;
+  max-width: 100vh; /* Optional constraint */
+  aspect-ratio: 9/16;
+  background-color: #1e293b;
+  box-shadow: 0 0 30px rgba(0, 0, 0, 0.8);
   display: flex;
   justify-content: center;
   align-items: center;
 }
 
+@media (min-aspect-ratio: 9/16) {
+  #app-container {
+    height: 100vh;
+    width: auto;
+  }
+}
+
+@media (max-aspect-ratio: 9/16) {
+  #app-container {
+    width: 100vw;
+    height: auto;
+  }
+}
+
+#game-container {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+
 canvas {
-  box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+  width: 100% !important;
+  height: 100% !important;
+  object-fit: contain;
+}
+
+/* UI Layer */
+#ui-layer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none; /* Let clicks pass through to game if needed */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.screen {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(15, 23, 42, 0.95);
+  display: none;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  pointer-events: auto; /* Catch clicks for UI */
+  padding: 20px;
+  text-align: center;
+}
+
+.screen.active {
+  display: flex;
+  animation: fadeIn 0.3s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+h1 {
+  font-size: 3rem;
+  margin-bottom: 2rem;
+  background: linear-gradient(135deg, #38bdf8, #818cf8);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+h2 {
+  font-size: 2rem;
+  margin-bottom: 1rem;
+  color: #f8fafc;
+}
+
+.input-group {
+  margin-bottom: 2rem;
+  width: 80%;
+  max-width: 300px;
+}
+
+input[type="text"] {
+  width: 100%;
+  padding: 15px;
+  border-radius: 8px;
+  border: 2px solid #475569;
+  background: #1e293b;
+  color: #fff;
+  font-size: 1.2rem;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+input[type="text"]:focus {
+  border-color: #38bdf8;
+}
+
+.btn {
+  padding: 15px 40px;
+  font-size: 1.5rem;
+  border: none;
+  border-radius: 50px;
+  cursor: pointer;
+  background: #334155;
+  color: #fff;
+  transition: all 0.2s;
+  font-weight: bold;
+}
+
+.btn.primary {
+  background: linear-gradient(135deg, #3b82f6, #6366f1);
+  box-shadow: 0 4px 15px rgba(59, 130, 246, 0.4);
+}
+
+.btn.primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(59, 130, 246, 0.6);
+}
+
+.btn:active {
+  transform: translateY(2px);
+}
+
+.hidden {
+  display: none !important;
+}
+
+.ranking-board {
+  margin-top: 3rem;
+  width: 90%;
+  max-width: 400px;
+  background: rgba(30, 41, 59, 0.8);
+  border-radius: 15px;
+  padding: 15px;
+}
+
+ul {
+  list-style: none;
+  text-align: left;
+}
+
+li {
+  padding: 10px;
+  border-bottom: 1px solid #334155;
+  display: flex;
+  justify-content: space-between;
+}
+
+.spinner {
+  width: 50px;
+  height: 50px;
+  border: 5px solid #334155;
+  border-top-color: #38bdf8;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 20px auto;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+
+.error-msg {
+  color: #ef4444;
+  margin: 10px 0;
+}
+
+.score-display {
+  font-size: 2.5rem;
+  font-weight: bold;
+  color: #fde047;
+  margin: 20px 0;
 }

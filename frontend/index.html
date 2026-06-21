@@ -4,11 +4,58 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <title>Physics Puzzle Game</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="./src/style.css">
   </head>
   <body>
-    <div id="app">
-      <!-- Game Container will be placed here -->
+    <div id="app-container">
+      <div id="game-container"></div>
+      
+      <!-- UI Overlays -->
+      <div id="ui-layer">
+        
+        <!-- Title Screen -->
+        <div id="title-screen" class="screen active">
+          <h1>Drop & Connect</h1>
+          <div class="input-group">
+            <input type="text" id="username-input" placeholder="Enter Username (1-15 chars)" maxlength="15">
+          </div>
+          <button id="start-btn" class="btn primary">Game Start</button>
+          
+          <div class="ranking-board">
+            <h2>Top 10 Rankings</h2>
+            <ul id="title-ranking-list">
+              <li>Loading...</li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- Result Screen -->
+        <div id="result-screen" class="screen">
+          <h2>Time Up!</h2>
+          <div class="score-display">Score: <span id="final-score">0</span></div>
+          <div id="loading-spinner" class="spinner"></div>
+          <div id="error-message" class="error-msg hidden">Failed to send score.</div>
+          <button id="retry-send-btn" class="btn hidden">Retry</button>
+        </div>
+
+        <!-- Ranking Screen -->
+        <div id="ranking-screen" class="screen">
+          <h2>Global Rankings</h2>
+          <div class="your-rank">Your Rank: <span id="your-rank-val">-</span></div>
+          <ul id="final-ranking-list" class="ranking-list">
+             <li>Loading...</li>
+          </ul>
+          <button id="back-title-btn" class="btn primary">Back to Title</button>
+        </div>
+
+        <!-- Pause Overlay -->
+        <div id="pause-screen" class="screen overlay">
+          <h2>Paused</h2>
+          <button id="resume-btn" class="btn primary">Resume</button>
+        </div>
+        
+      </div>
     </div>
     <script type="module" src="./src/main.js"></script>
   </body>
