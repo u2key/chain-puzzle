@@ -58,18 +58,27 @@ class BootScene extends Phaser.Scene {
     }
     preload() {
         // Generate gem textures using Canvas API
-        const colors = [0xff0044, 0x00ccff, 0x33ff00, 0xffcc00, 0xcc00ff];
-        for (let i = 0; i < 5; i++) {
+        const typesConfig = [
+            { color: 0xff0044, radius: 50 },
+            { color: 0x00ccff, radius: 55 },
+            { color: 0x33ff00, radius: 45 },
+            { color: 0xffcc00, radius: 60 },
+            { color: 0xcc00ff, radius: 40 }
+        ];
+        
+        typesConfig.forEach((cfg, i) => {
+            const r = cfg.radius;
+            const d = r * 2;
             const graphics = this.make.graphics({x:0, y:0, add: false});
-            graphics.fillStyle(colors[i], 1);
-            graphics.fillCircle(50, 50, 50); // diameter 100
+            graphics.fillStyle(cfg.color, 1);
+            graphics.fillCircle(r, r, r);
             
             // Add a highlight for volume
             graphics.fillStyle(0xffffff, 0.4);
-            graphics.fillCircle(35, 35, 15);
+            graphics.fillCircle(r * 0.7, r * 0.7, r * 0.3);
             
-            graphics.generateTexture(`gem_${i+1}`, 100, 100);
-        }
+            graphics.generateTexture(`gem_${i+1}`, d, d);
+        });
     }
     create() {
         this.scene.start('GameScene');
@@ -104,8 +113,9 @@ class GameScene extends Phaser.Scene {
         this.timerEvent = this.time.addEvent({ delay: 1000, callback: this.tick, callbackScope: this, loop: true });
 
         // Spawn initial gems
+        this.maxGems = 140;
         this.gems = [];
-        this.spawnGems(50);
+        this.spawnGems(this.maxGems);
         
         // Interaction Logic setup
         this.selectedGems = [];
@@ -169,7 +179,8 @@ class GameScene extends Phaser.Scene {
                 else if (!this.selectedGems.includes(gem)) {
                     const lastGem = this.selectedGems[this.selectedGems.length - 1];
                     const distance = Phaser.Math.Distance.Between(lastGem.x, lastGem.y, gem.x, gem.y);
-                    if (gem.gemType === lastGem.gemType && distance <= 120) {
+                    const avgDiameter = (lastGem.width + gem.width) / 2;
+                    if (gem.gemType === lastGem.gemType && distance <= avgDiameter * 1.2) {
                         this.selectedGems.push(gem);
                         gem.setTint(0x888888);
                     }
@@ -206,7 +217,7 @@ class GameScene extends Phaser.Scene {
         // Effect
         this.cameras.main.flash(200, 255, 255, 255);
         
-        const needed = 50 - this.gems.length;
+        const needed = this.maxGems - this.gems.length;
         if (needed > 0) {
             this.spawnGems(needed);
         }
