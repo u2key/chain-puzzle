@@ -110,6 +110,13 @@ class GameScene extends Phaser.Scene {
         this.scoreText = this.add.text(40, 40, 'Score: 0', { fontSize: '48px', fill: '#fff', fontStyle: 'bold' });
         this.timeText = this.add.text(1040, 40, 'Time: 60', { fontSize: '48px', fill: '#fff', fontStyle: 'bold' }).setOrigin(1, 0);
         
+        // Gauge for Time Bonus
+        this.bonusThreshold = 2000;
+        this.bonusTime = 5;
+        this.add.text(40, 100, 'Next Time Bonus:', { fontSize: '24px', fill: '#cbd5e1' });
+        this.gaugeBg = this.add.rectangle(40, 140, 400, 20, 0x334155).setOrigin(0, 0.5);
+        this.gaugeFill = this.add.rectangle(40, 140, 0, 20, 0x38bdf8).setOrigin(0, 0.5);
+
         const pauseBtn = this.add.text(540, 40, 'PAUSE', { fontSize: '40px', fill: '#fff', backgroundColor: '#334155', padding: { x: 20, y: 10 } }).setOrigin(0.5, 0).setInteractive();
         pauseBtn.on('pointerdown', () => {
             this.pauseGame();
@@ -223,8 +230,54 @@ class GameScene extends Phaser.Scene {
     processChain() {
         const n = this.selectedGems.length;
         const addScore = Math.floor(n * 100 * (1 + (n - 3) * 0.1));
+        const previousScore = this.score;
         this.score += addScore;
         this.scoreText.setText(`Score: ${this.score.toLocaleString()}`);
+
+        // Time Bonus Logic
+        const previousLevel = Math.floor(previousScore / this.bonusThreshold);
+        const currentLevel = Math.floor(this.score / this.bonusThreshold);
+        
+        if (currentLevel > previousLevel) {
+            const levelsGained = currentLevel - previousLevel;
+            const addedTime = this.bonusTime * levelsGained;
+            this.timeLeft += addedTime;
+            this.timeText.setText(`Time: ${this.timeLeft}`);
+            
+            // Visual feedback for added time
+            const bonusText = this.add.text(this.timeText.x - 50, this.timeText.y + 60, `+${addedTime}s`, { fontSize: '40px', fill: '#38bdf8', fontStyle: 'bold' }).setOrigin(0.5);
+            this.tweens.add({
+                targets: bonusText,
+                y: bonusText.y - 50,
+                alpha: 0,
+                duration: 1000,
+                onComplete: () => bonusText.destroy()
+            });
+
+            // Animate gauge wrap-around
+            this.tweens.add({
+                targets: this.gaugeFill,
+                width: 400,
+                duration: 150,
+                onComplete: () => {
+                    this.gaugeFill.width = 0;
+                    this.tweens.add({
+                        targets: this.gaugeFill,
+                        width: 400 * ((this.score % this.bonusThreshold) / this.bonusThreshold),
+                        duration: 150,
+                        ease: 'Power2'
+                    });
+                }
+            });
+        } else {
+            // Normal gauge update
+            this.tweens.add({
+                targets: this.gaugeFill,
+                width: 400 * ((this.score % this.bonusThreshold) / this.bonusThreshold),
+                duration: 300,
+                ease: 'Power2'
+            });
+        }
 
         this.selectedGems.forEach(gem => {
             const idx = this.gems.indexOf(gem);
