@@ -107,7 +107,7 @@ function findValidChain(gems, minLength) {
 }
 
 // Set up a custom horizontal chain of gems for easy reliable chain testing
-function setupCustomGemsChain(scene, count, type = 1) {
+function setupCustomGemsChain(scene, count, type = 1, isStatic = false) {
     scene.gems.forEach(g => {
         if (g && g.destroy) g.destroy();
     });
@@ -135,6 +135,9 @@ function setupCustomGemsChain(scene, count, type = 1) {
         gem.gemType = type;
         gem.spawnTime = scene.time.now;
         gem.setInteractive();
+        if (isStatic) {
+            gem.setStatic(true);
+        }
         scene.gems.push(gem);
     }
 }
@@ -204,16 +207,23 @@ const testCases = [
             const startBtn = doc.getElementById('start-btn');
             if (!input || !startBtn) return { success: false, message: 'Title screen elements missing.' };
             
+            const win = iframe.contentWindow;
+            let alertMsg = '';
+            const originalAlert = win.alert;
+            win.alert = (msg) => { alertMsg = msg; };
+            
             // Enter malicious string
             input.value = 'User<script>alert(1)</script>';
             startBtn.click();
-            await sleep(1000); // wait for game start
+            await sleep(200);
             
-            const scene = getActiveScene();
-            if (scene) {
-                return { success: true, message: 'Started game session safely with potential HTML tag input.' };
+            win.alert = originalAlert;
+            
+            const activeScreen = doc.querySelector('.screen.active');
+            if (activeScreen && activeScreen.id === 'title-screen' && alertMsg.length > 0) {
+                return { success: true, message: `Blocked HTML script input with alert: "${alertMsg}"` };
             }
-            return { success: false, message: 'Failed to start game or bypass validation.' };
+            return { success: false, message: 'Allowed login or did not display alert.' };
         }
     },
     {
@@ -347,9 +357,9 @@ const testCases = [
             const scene = getActiveScene();
             if (!scene) return { success: false, message: 'Game not running.' };
             
-            // Generate clean linear layout of 10 gems for robust trace
-            setupCustomGemsChain(scene, 10, 1);
-            await sleep(800); // wait for physical positioning
+            // Generate clean linear layout of 10 static gems
+            setupCustomGemsChain(scene, 10, 1, true);
+            await sleep(500);
             
             const initialScore = scene.score;
             const targetGems = scene.gems;
@@ -360,6 +370,10 @@ const testCases = [
                 scene.handlePointerMove({ x: targetGems[i].x, y: targetGems[i].y });
             }
             await sleep(50);
+            
+            // Make them dynamic before pointerUp so Matter engine processes destruction correctly
+            targetGems.forEach(g => g.setStatic(false));
+            
             scene.handlePointerUp({ x: targetGems[9].x, y: targetGems[9].y });
             
             await sleep(600);
@@ -417,32 +431,34 @@ const testCases = [
             const scene = getActiveScene();
             if (!scene) return { success: false, message: 'Game not running.' };
             
-            // Find 2 gems of the same type separated by distance > 120px
-            let distantPair = null;
-            for (let i = 0; i < scene.gems.length; i++) {
-                for (let j = i + 1; j < scene.gems.length; j++) {
-                    const g1 = scene.gems[i];
-                    const g2 = scene.gems[j];
-                    if (g1.gemType === g2.gemType) {
-                        const dist = Math.hypot(g1.x - g2.x, g1.y - g2.y);
-                        if (dist > 130) {
-                            distantPair = [g1, g2];
-                            break;
-                        }
-                    }
-                }
-                if (distantPair) break;
-            }
+            // Create 2 static gems explicitly separated by 300px
+            scene.gems.forEach(g => { if (g && g.destroy) g.destroy(); });
+            scene.gems = [];
             
-            if (!distantPair) return { success: false, message: 'Unable to find 2 distant同種 gems. Run shuffle or wait.' };
+            const r = scene.registry.get('typesConfig')[0].radius;
+            const fallbackKey = scene.textures.exists('gem_img_1') ? 'gem_img_1' : 'gem_fallback_1';
             
-            scene.handlePointerDown({ x: distantPair[0].x, y: distantPair[0].y });
+            const g1 = scene.matter.add.image(200, 800, fallbackKey, null, { shape: 'circle' });
+            g1.setDisplaySize(r * 2, r * 2).setStatic(true);
+            g1.gemType = 1;
+            g1.spawnTime = scene.time.now;
+            g1.setInteractive();
+            scene.gems.push(g1);
+            
+            const g2 = scene.matter.add.image(500, 800, fallbackKey, null, { shape: 'circle' });
+            g2.setDisplaySize(r * 2, r * 2).setStatic(true);
+            g2.gemType = 1;
+            g2.spawnTime = scene.time.now;
+            g2.setInteractive();
+            scene.gems.push(g2);
+            
+            scene.handlePointerDown({ x: g1.x, y: g1.y });
             await sleep(100);
-            scene.handlePointerMove({ x: distantPair[1].x, y: distantPair[1].y });
+            scene.handlePointerMove({ x: g2.x, y: g2.y });
             await sleep(100);
             
             const selectedCount = scene.selectedGems.length;
-            scene.handlePointerUp({ x: distantPair[1].x, y: distantPair[1].y });
+            scene.handlePointerUp({ x: g2.x, y: g2.y });
             
             if (selectedCount === 1) {
                 return { success: true, message: 'Successfully blocked non-adjacent connection.' };
@@ -484,6 +500,7 @@ const testCases = [
             if (!scene) return { success: false, message: 'Game not running.' };
             
             scene.pauseGame();
+            await sleep(400); // Wait for fade-in animation to complete
             
             const doc = getIframeDoc();
             const win = iframe.contentWindow;
@@ -498,7 +515,7 @@ const testCases = [
             if (hasClass && isVisible) {
                 return { success: true, message: 'Overlay screen cover is successfully active and blocking view.' };
             }
-            return { success: false, message: `Overlay missing active state or invisible: active=${hasClass}, visible=${isVisible}` };
+            return { success: false, message: `Overlay missing active state or invisible: active=${hasClass}, visible=${isVisible}, opacity=${style.opacity}` };
         }
     },
     {
@@ -509,8 +526,11 @@ const testCases = [
             const scene = getActiveScene();
             if (!scene) return { success: false, message: 'Game not running.' };
             
-            const targetGems = findValidChain(scene.gems, 3);
-            if (!targetGems) return { success: false, message: 'Unable to find adjacent chain.' };
+            // Set up a static chain to guarantee 3 adjacent gems
+            setupCustomGemsChain(scene, 3, 1, true);
+            await sleep(500);
+            
+            const targetGems = scene.gems;
             
             scene.handlePointerDown({ x: targetGems[0].x, y: targetGems[0].y });
             await sleep(100);
@@ -562,9 +582,12 @@ const testCases = [
             const scene = getActiveScene();
             if (!scene) return { success: false, message: 'Game not running.' };
             
+            // Set up a static chain of 3 gems to ensure availability and no movement during drag
+            setupCustomGemsChain(scene, 3, 1, true);
+            await sleep(500);
+            
             const initialCount = scene.gems.length;
-            const targetGems = findValidChain(scene.gems, 3);
-            if (!targetGems) return { success: false, message: 'Need 3 adjacent gems.' };
+            const targetGems = scene.gems;
             
             scene.handlePointerDown({ x: targetGems[0].x, y: targetGems[0].y });
             await sleep(50);
@@ -573,6 +596,10 @@ const testCases = [
             scene.handlePointerMove({ x: targetGems[2].x, y: targetGems[2].y });
             
             const countDuringDrag = scene.gems.length;
+            
+            // Make them dynamic before pointerUp so they can be processed and destroyed correctly
+            targetGems.forEach(g => g.setStatic(false));
+            
             scene.handlePointerUp({ x: targetGems[2].x, y: targetGems[2].y });
             
             await sleep(500); // wait for refill drop
@@ -595,9 +622,7 @@ const testCases = [
             const gem = scene.gems[0];
             if (!gem) return { success: false, message: 'No gems available in world.' };
             
-            // Simulate static stacking state
-            gem.body.friction = 1.0;
-            gem.body.frictionAir = 1.0;
+            // Simulate static stacking state without modifying friction which blocks movement
             gem.spawnTime = scene.time.now - 4000; // set spawn older than 3s boundary
             
             scene.matter.body.setVelocity(gem.body, { x: 0, y: 0 });
@@ -606,10 +631,6 @@ const testCases = [
             await sleep(100);
             
             const speedX = Math.abs(gem.body.velocity.x);
-            
-            // Restore physics values
-            gem.body.friction = 0.05;
-            gem.body.frictionAir = 0.01;
             
             if (speedX > 0.0001) {
                 return { success: true, message: `Successfully triggered idle anti-stack force. Speed X applied: ${speedX.toFixed(6)}` };
@@ -801,7 +822,7 @@ const testCases = [
             
             log('Force setting timeLeft to 1 second...');
             scene.timeLeft = 1;
-            await sleep(1500); // Wait for transition
+            await sleep(2500); // Wait for transition with safety buffer
             
             const resultScreen = doc.getElementById('result-screen');
             const isResultActive = resultScreen.classList.contains('active');

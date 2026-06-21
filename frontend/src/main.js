@@ -492,3 +492,8 @@ function showResultScreen(score) {
 
 // Initial Boot
 showTitleScreen();
+
+// Expose UI functions for black box testing
+window.showResultScreen = showResultScreen;
+window.showTitleScreen = showTitleScreen;
+window.postScore = postScore;
