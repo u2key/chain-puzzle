@@ -413,12 +413,17 @@ async function postScore(score) {
     errorMsg.classList.add('hidden');
     retrySendBtn.classList.add('hidden');
 
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 5000);
+
     try {
         const res = await fetch('http://localhost:25563/api/score', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ username: currentUsername, score: score })
+            body: JSON.stringify({ username: currentUsername, score: score }),
+            signal: controller.signal
         });
+        clearTimeout(timeoutId);
         const data = await res.json();
         
         loadingSpinner.classList.add('hidden');
@@ -432,8 +437,13 @@ async function postScore(score) {
             retrySendBtn.classList.remove('hidden');
         }
     } catch (e) {
+        clearTimeout(timeoutId);
         loadingSpinner.classList.add('hidden');
-        errorMsg.textContent = "Network error. Failed to send score.";
+        if (e.name === 'AbortError') {
+            errorMsg.textContent = "Request timeout. Failed to send score.";
+        } else {
+            errorMsg.textContent = "Network error. Failed to send score.";
+        }
         errorMsg.classList.remove('hidden');
         retrySendBtn.classList.remove('hidden');
     }

@@ -2,38 +2,366 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <title>Black Box Test Bot</title>
+  <title>Drop & Connect - Black Box Test Console</title>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;600;800&family=JetBrains+Mono&display=swap" rel="stylesheet">
   <style>
-    body { font-family: sans-serif; display: flex; margin: 0; background: #1e293b; color: white; height: 100vh; overflow: hidden; }
-    #panel { width: 350px; padding: 20px; border-right: 1px solid #334155; height: 100vh; overflow-y: auto; box-sizing: border-box; }
-    #game-wrapper { flex: 1; display: flex; justify-content: center; align-items: center; background: #0f172a; height: 100vh; overflow: hidden; padding: 20px; box-sizing: border-box; }
-    iframe { height: 100%; max-height: 900px; aspect-ratio: 9/16; border: 2px solid #38bdf8; border-radius: 10px; background: #000; }
-    button { display: block; width: 100%; padding: 10px; margin-bottom: 10px; cursor: pointer; background: #3b82f6; color: white; border: none; border-radius: 5px; font-weight: bold; }
-    button:hover { background: #2563eb; }
-    button:disabled { background: #475569; cursor: not-allowed; }
-    .log-box { margin-top: 20px; padding: 10px; background: #0f172a; border-radius: 5px; height: calc(100vh - 250px); overflow-y: auto; font-family: monospace; font-size: 12px; }
-    .log-entry { margin-bottom: 5px; border-bottom: 1px solid #334155; padding-bottom: 5px; }
-    .success { color: #4ade80; }
-    .error { color: #f87171; }
-    .info { color: #60a5fa; }
+    :root {
+      --bg-darker: #0b0f19;
+      --bg-dark: #111827;
+      --bg-panel: rgba(17, 24, 39, 0.85);
+      --border-color: rgba(56, 189, 248, 0.2);
+      --text-main: #f3f4f6;
+      --text-muted: #9ca3af;
+      --accent: #38bdf8;
+      --accent-grad: linear-gradient(135deg, #38bdf8 0%, #818cf8 100%);
+      --success: #10b981;
+      --error: #ef4444;
+      --warning: #f59e0b;
+      --pending: #6b7280;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Outfit', sans-serif;
+      display: flex;
+      background: var(--bg-darker);
+      color: var(--text-main);
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    /* Left Console Panel */
+    #console-panel {
+      width: 480px;
+      height: 100vh;
+      border-right: 1px solid var(--border-color);
+      background: var(--bg-panel);
+      backdrop-filter: blur(12px);
+      display: flex;
+      flex-direction: column;
+      padding: 20px;
+      box-shadow: 10px 0 30px rgba(0, 0, 0, 0.5);
+      z-index: 10;
+    }
+
+    header {
+      margin-bottom: 20px;
+      border-bottom: 1px solid var(--border-color);
+      padding-bottom: 15px;
+    }
+
+    h1 {
+      font-size: 22px;
+      font-weight: 800;
+      background: var(--accent-grad);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 5px;
+    }
+
+    .subtitle {
+      font-size: 12px;
+      color: var(--text-muted);
+      letter-spacing: 0.5px;
+      text-transform: uppercase;
+    }
+
+    /* Controls */
+    .global-controls {
+      display: flex;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+
+    button {
+      font-family: 'Outfit', sans-serif;
+      cursor: pointer;
+      font-weight: 600;
+      transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      border-radius: 8px;
+    }
+
+    .btn-primary {
+      flex: 1;
+      padding: 12px;
+      background: var(--accent-grad);
+      color: white;
+      border: none;
+      box-shadow: 0 4px 15px rgba(56, 189, 248, 0.4);
+      font-size: 14px;
+      letter-spacing: 0.5px;
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 6px 20px rgba(56, 189, 248, 0.6);
+    }
+
+    .btn-primary:active {
+      transform: translateY(1px);
+    }
+
+    .btn-secondary {
+      padding: 12px 20px;
+      background: #1f2937;
+      color: var(--text-main);
+      border: 1px solid var(--border-color);
+      font-size: 14px;
+    }
+
+    .btn-secondary:hover {
+      background: #374151;
+      border-color: var(--accent);
+    }
+
+    button:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+      transform: none !important;
+      box-shadow: none !important;
+    }
+
+    /* Test Case List */
+    #test-case-container {
+      flex: 1;
+      overflow-y: auto;
+      margin-bottom: 20px;
+      padding-right: 5px;
+    }
+
+    /* Custom Slim Scrollbar */
+    #test-case-container::-webkit-scrollbar,
+    .log-box::-webkit-scrollbar {
+      width: 6px;
+    }
+    #test-case-container::-webkit-scrollbar-track,
+    .log-box::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    #test-case-container::-webkit-scrollbar-thumb,
+    .log-box::-webkit-scrollbar-thumb {
+      background: rgba(56, 189, 248, 0.2);
+      border-radius: 10px;
+    }
+    #test-case-container::-webkit-scrollbar-thumb:hover,
+    .log-box::-webkit-scrollbar-thumb:hover {
+      background: rgba(56, 189, 248, 0.4);
+    }
+
+    .category-section {
+      margin-bottom: 15px;
+    }
+
+    .category-title {
+      font-size: 12px;
+      font-weight: 800;
+      color: var(--accent);
+      margin-bottom: 8px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      display: flex;
+      align-items: center;
+      gap: 5px;
+    }
+
+    .test-case-row {
+      background: rgba(31, 41, 55, 0.4);
+      border: 1px solid rgba(255, 255, 255, 0.05);
+      border-radius: 8px;
+      padding: 10px 12px;
+      margin-bottom: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      transition: all 0.2s ease;
+    }
+
+    .test-case-row:hover {
+      background: rgba(31, 41, 55, 0.7);
+      border-color: rgba(56, 189, 248, 0.15);
+    }
+
+    .test-case-info {
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+      max-width: 75%;
+    }
+
+    .test-case-meta {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .test-case-id {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      font-weight: bold;
+      color: var(--accent);
+      background: rgba(56, 189, 248, 0.1);
+      padding: 1px 4px;
+      border-radius: 4px;
+    }
+
+    .test-case-name {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-main);
+    }
+
+    .test-case-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .status-badge {
+      font-size: 10px;
+      font-weight: 800;
+      text-transform: uppercase;
+      padding: 3px 8px;
+      border-radius: 20px;
+      letter-spacing: 0.5px;
+    }
+
+    .status-pending { background: rgba(107, 114, 128, 0.15); color: var(--pending); border: 1px solid rgba(107, 114, 128, 0.3); }
+    .status-running { background: rgba(245, 158, 11, 0.15); color: var(--warning); border: 1px solid rgba(245, 158, 11, 0.3); animation: pulse 1.5s infinite; }
+    .status-passed { background: rgba(16, 185, 129, 0.15); color: var(--success); border: 1px solid rgba(16, 185, 129, 0.3); }
+    .status-failed { background: rgba(239, 68, 68, 0.15); color: var(--error); border: 1px solid rgba(239, 68, 68, 0.3); }
+
+    .btn-run-single {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      font-size: 14px;
+      padding: 4px 8px;
+      border-radius: 4px;
+    }
+
+    .btn-run-single:hover {
+      color: var(--accent);
+      background: rgba(56, 189, 248, 0.1);
+    }
+
+    @keyframes pulse {
+      0% { opacity: 0.6; }
+      50% { opacity: 1; }
+      100% { opacity: 0.6; }
+    }
+
+    /* Log Panel */
+    .log-panel {
+      border-top: 1px solid var(--border-color);
+      padding-top: 15px;
+      height: 250px;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .log-title {
+      font-size: 12px;
+      font-weight: 800;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .btn-clear {
+      background: transparent;
+      border: none;
+      color: var(--text-muted);
+      font-size: 11px;
+      cursor: pointer;
+    }
+    .btn-clear:hover {
+      color: var(--accent);
+    }
+
+    .log-box {
+      flex: 1;
+      background: rgba(0, 0, 0, 0.3);
+      border: 1px solid rgba(255, 255, 255, 0.03);
+      border-radius: 8px;
+      padding: 10px;
+      overflow-y: auto;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      line-height: 1.5;
+    }
+
+    .log-entry {
+      margin-bottom: 4px;
+      padding-bottom: 4px;
+      border-bottom: 1px solid rgba(255, 255, 255, 0.02);
+      display: flex;
+      gap: 6px;
+    }
+
+    .log-time { color: #536471; }
+    .log-info { color: #60a5fa; }
+    .log-success { color: #34d399; font-weight: bold; }
+    .log-error { color: #f87171; font-weight: bold; }
+    .log-warning { color: #fbbf24; }
+
+    /* Right Game Preview */
+    #game-wrapper {
+      flex: 1;
+      background: #090d16;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    iframe {
+      height: 100%;
+      max-height: 900px;
+      aspect-ratio: 9/16;
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.8);
+      background: #000;
+    }
   </style>
 </head>
 <body>
 
-  <div id="panel">
-    <h2>Test Dashboard</h2>
-    <button id="btn-login">1. Auto Login (User: TestBot)</button>
-    <button id="btn-test-tc-sc-01">2. Run TC-SC-01 (2-Chain Test)</button>
-    <button id="btn-test-tc-sc-02">3. Run TC-SC-02 (3-Chain Test)</button>
-    <button id="btn-test-tc-pz-01">4. Run TC-PZ-01 (Pause Test)</button>
-    <button id="btn-test-tc-pz-03">5. Run TC-PZ-03 (Pause Cancel Test)</button>
-    <button id="btn-test-tc-ph-04">6. Run TC-PH-04 (Shuffle Test)</button>
-    
-    <div class="log-box" id="log-box"></div>
+  <div id="console-panel">
+    <header>
+      <h1>Black Box Test Console</h1>
+      <div class="subtitle">Physics Puzzle Game Verification</div>
+    </header>
+
+    <div class="global-controls">
+      <button id="btn-run-all" class="btn-primary">Run All Tests</button>
+      <button id="btn-reset-app" class="btn-secondary">Reset Game</button>
+    </div>
+
+    <div id="test-case-container">
+      <!-- Generated Dynamically via JavaScript -->
+    </div>
+
+    <div class="log-panel">
+      <div class="log-title">
+        <span>Console Log Output</span>
+        <button id="btn-clear-log" class="btn-clear">Clear Logs</button>
+      </div>
+      <div class="log-box" id="log-box"></div>
+    </div>
   </div>
 
   <div id="game-wrapper">
-    <!-- Same domain iframe to bypass CORS and allow DOM event injection -->
     <iframe id="game-iframe" src="../index.html"></iframe>
   </div>
 
