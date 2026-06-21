@@ -290,7 +290,7 @@ function switchScreen(screen) {
 async function fetchRanking(listEl) {
     listEl.innerHTML = '<li>Loading...</li>';
     try {
-        const res = await fetch('http://localhost:3000/api/ranking');
+        const res = await fetch('http://localhost:25563/api/ranking');
         const data = await res.json();
         if (data.status === 'success') {
             listEl.innerHTML = '';
@@ -313,7 +313,7 @@ async function postScore(score) {
     retrySendBtn.classList.add('hidden');
 
     try {
-        const res = await fetch('http://localhost:3000/api/score', {
+        const res = await fetch('http://localhost:25563/api/score', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ username: currentUsername, score: score })

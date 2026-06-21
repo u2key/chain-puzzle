@@ -1,16 +1,16 @@
-const express = require('express');
-const sqlite3 = require('sqlite3').verbose();
-const cors = require('cors');
+const express = require('./backend/node_modules/express');
+const sqlite3 = require('./backend/node_modules/sqlite3').verbose();
+const cors = require('./backend/node_modules/cors');
 const path = require('path');
 
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 25563;
 
 app.use(cors());
 app.use(express.json());
 
 // Set up SQLite Database
-const dbPath = path.join(__dirname, 'database.sqlite');
+const dbPath = path.join(__dirname, 'backend', 'database.sqlite');
 const db = new sqlite3.Database(dbPath, (err) => {
     if (err) {
         console.error('Error opening database', err.message);
