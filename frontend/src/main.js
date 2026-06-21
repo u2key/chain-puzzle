@@ -118,9 +118,14 @@ class GameScene extends Phaser.Scene {
         this.gaugeBg = this.add.rectangle(40, 140, 400, 20, 0x334155).setOrigin(0, 0.5);
         this.gaugeFill = this.add.rectangle(40, 140, 0, 20, 0x38bdf8).setOrigin(0, 0.5);
 
-        const pauseBtn = this.add.text(540, 40, 'PAUSE', { fontSize: '40px', fill: '#fff', backgroundColor: '#334155', padding: { x: 20, y: 10 } }).setOrigin(0.5, 0).setInteractive();
+        const pauseBtn = this.add.text(450, 40, 'PAUSE', { fontSize: '36px', fill: '#fff', backgroundColor: '#334155', padding: { x: 20, y: 10 } }).setOrigin(0.5, 0).setInteractive();
         pauseBtn.on('pointerdown', () => {
             this.pauseGame();
+        });
+
+        const shuffleBtn = this.add.text(650, 40, 'SHUFFLE', { fontSize: '36px', fill: '#fff', backgroundColor: '#8b5cf6', padding: { x: 20, y: 10 } }).setOrigin(0.5, 0).setInteractive();
+        shuffleBtn.on('pointerdown', () => {
+            this.shuffleGems();
         });
 
         // Timer Event
@@ -307,6 +312,19 @@ class GameScene extends Phaser.Scene {
                     }
                 }
             }
+        });
+    }
+
+    shuffleGems() {
+        if (this.isPaused || this.timeLeft <= 0) return;
+        
+        // Throw all gems up into the air with random velocities to mix them up
+        this.gems.forEach(gem => {
+            const vx = (Math.random() - 0.5) * 40;
+            const vy = -(Math.random() * 30 + 20); // Strong upward velocity
+            this.matter.body.setVelocity(gem.body, { x: vx, y: vy });
+            // Also spin them
+            this.matter.body.setAngularVelocity(gem.body, (Math.random() - 0.5) * 0.5);
         });
     }
 
