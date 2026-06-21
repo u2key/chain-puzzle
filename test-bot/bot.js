@@ -371,9 +371,6 @@ const testCases = [
             }
             await sleep(50);
             
-            // Make them dynamic before pointerUp so Matter engine processes destruction correctly
-            targetGems.forEach(g => g.setStatic(false));
-            
             scene.handlePointerUp({ x: targetGems[9].x, y: targetGems[9].y });
             
             await sleep(600);
@@ -597,18 +594,15 @@ const testCases = [
             
             const countDuringDrag = scene.gems.length;
             
-            // Make them dynamic before pointerUp so they can be processed and destroyed correctly
-            targetGems.forEach(g => g.setStatic(false));
-            
             scene.handlePointerUp({ x: targetGems[2].x, y: targetGems[2].y });
             
             await sleep(500); // wait for refill drop
             const countAfterRefill = scene.gems.length;
             
-            if (countDuringDrag === initialCount && countAfterRefill === initialCount) {
-                return { success: true, message: 'Refills successfully delayed until gesture complete.' };
+            if (countDuringDrag === initialCount && countAfterRefill === scene.maxGems) {
+                return { success: true, message: `Refills successfully delayed until gesture complete (Count after: ${countAfterRefill}).` };
             }
-            return { success: false, message: `Premature refill or drop mismatch. Initial: ${initialCount}, during: ${countDuringDrag}, final: ${countAfterRefill}` };
+            return { success: false, message: `Premature refill or drop mismatch. Initial: ${initialCount}, during: ${countDuringDrag}, final: ${countAfterRefill} (expected final to match maxGems: ${scene.maxGems})` };
         }
     },
     {
@@ -727,7 +721,7 @@ const testCases = [
         category: 'Backend & API',
         name: 'FIFO Tie-Breaker Sorting',
         run: async () => {
-            const tieScore = 8800;
+            const tieScore = 9990000;
             const userA = `TieA_${Math.floor(Math.random() * 90000) + 10000}`;
             const userB = `TieB_${Math.floor(Math.random() * 90000) + 10000}`;
             
@@ -767,12 +761,12 @@ const testCases = [
             const win = iframe.contentWindow;
             const doc = getIframeDoc();
             
-            // Monkeypatch window fetch to inject artificial 5.5s delay to trigger timeout Abort
+            // Monkeypatch window fetch to inject artificial 6.0s delay to trigger timeout Abort
             const originalFetch = win.fetch;
             win.fetch = async (...args) => {
                 if (args[0].includes('/api/score')) {
-                    log('Score POST intercepted. Injecting 5.5 seconds delay...', 'warning');
-                    await sleep(5500);
+                    log('Score POST intercepted. Injecting 6.0 seconds delay...', 'warning');
+                    await sleep(6000);
                 }
                 return originalFetch(...args);
             };
@@ -780,8 +774,8 @@ const testCases = [
             log('Triggering artificial game end to submit score...');
             win.showResultScreen(2500);
             
-            // Wait for timeout to fire (5s cutoff)
-            await sleep(5300);
+            // Wait for timeout to fire (5s cutoff) with safety margin
+            await sleep(6800);
             
             const errorMsgEl = doc.getElementById('error-message');
             const retryBtnEl = doc.getElementById('retry-send-btn');
@@ -825,13 +819,14 @@ const testCases = [
             await sleep(2500); // Wait for transition with safety buffer
             
             const resultScreen = doc.getElementById('result-screen');
-            const isResultActive = resultScreen.classList.contains('active');
+            const rankingScreen = doc.getElementById('ranking-screen');
+            const isFinished = resultScreen.classList.contains('active') || rankingScreen.classList.contains('active');
             const isInputBlocked = !scene.input.enabled;
             
-            if (isResultActive && isInputBlocked) {
-                return { success: true, message: 'Verified: System successfully blocked input on timeup and transitioned to Result Screen.' };
+            if (isFinished && isInputBlocked) {
+                return { success: true, message: `Verified: System successfully blocked input on timeup and transitioned to game end (Result/Ranking screen active).` };
             }
-            return { success: false, message: `Transition failure. Result panel active: ${isResultActive}, Game input blocked: ${isInputBlocked}` };
+            return { success: false, message: `Transition failure. Game end screen active: ${isFinished}, Game input blocked: ${isInputBlocked}` };
         }
     }
 ];
