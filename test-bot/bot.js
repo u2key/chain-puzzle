@@ -39,14 +39,23 @@ async function resetApp() {
     const doc = getIframeDoc();
     const win = iframe.contentWindow;
     
-    if (win.gameInstance) {
-        win.gameInstance.destroy(true);
-        win.gameInstance = null;
-    }
-    
     // Trigger the backBtn if on result/ranking screen
+    // This properly destroys the game instance and shows title screen
     const backBtn = doc.getElementById('back-title-btn');
-    if (backBtn) backBtn.click();
+    const rankingScreen = doc.getElementById('ranking-screen');
+    const resultScreen = doc.getElementById('result-screen');
+    const isOnEndScreen = (rankingScreen && rankingScreen.classList.contains('active')) ||
+                          (resultScreen && resultScreen.classList.contains('active'));
+    
+    if (isOnEndScreen && backBtn) {
+        backBtn.click();
+    } else {
+        // Manually destroy game if not on end screen
+        if (win.gameInstance) {
+            win.gameInstance.destroy(true);
+            win.gameInstance = null;
+        }
+    }
     
     // Clear overlay
     const pauseScreen = doc.getElementById('pause-screen');
@@ -118,7 +127,7 @@ function setupCustomGemsChain(scene, count, type = 1, isStatic = false) {
     const r = scene.registry.get('typesConfig')[type - 1].radius;
     
     for (let i = 0; i < count; i++) {
-        const x = startX + (i * r * 0.75);
+        const x = startX + (i * r * 2.05);
         const y = startY; 
         const imgKey = `gem_img_${type}`;
         const fallbackKey = `gem_fallback_${type}`;
@@ -357,8 +366,22 @@ const testCases = [
             const scene = getActiveScene();
             if (!scene) return { success: false, message: 'Game not running.' };
             
-            // Generate clean linear layout of 10 static gems
-            setupCustomGemsChain(scene, 10, 1, true);
+            // Generate clean zigzag non-overlapping layout of 10 static gems
+            scene.gems.forEach(g => { if (g && g.destroy) g.destroy(); });
+            scene.gems = [];
+            const r = scene.registry.get('typesConfig')[0].radius; // 90
+            const fallbackKey = scene.textures.exists('gem_img_1') ? 'gem_img_1' : 'gem_fallback_1';
+            
+            for (let i = 0; i < 10; i++) {
+                const x = 100 + (i * 96);
+                const y = (i % 2 === 0) ? 800 : 950;
+                const gem = scene.matter.add.image(x, y, fallbackKey, null, { shape: 'circle' });
+                gem.setDisplaySize(r * 2, r * 2).setStatic(true);
+                gem.gemType = 1;
+                gem.spawnTime = scene.time.now;
+                gem.setInteractive();
+                scene.gems.push(gem);
+            }
             await sleep(500);
             
             const initialScore = scene.score;
@@ -621,7 +644,11 @@ const testCases = [
             
             scene.matter.body.setVelocity(gem.body, { x: 0, y: 0 });
             
+            const originalRandom = Math.random;
+            Math.random = () => 1.0; // Force maximum rightward force direction
             scene.checkStacking();
+            Math.random = originalRandom; // Restore original random function
+            
             await sleep(100);
             
             const speedX = Math.abs(gem.body.velocity.x);
@@ -721,6 +748,11 @@ const testCases = [
         category: 'Backend & API',
         name: 'FIFO Tie-Breaker Sorting',
         run: async () => {
+            try {
+                await fetch('http://localhost:25563/api/reset', { method: 'POST' });
+            } catch (e) {
+                log(`Failed to reset DB: ${e.message}`, 'warning');
+            }
             const tieScore = 9990000;
             const userA = `TieA_${Math.floor(Math.random() * 90000) + 10000}`;
             const userB = `TieB_${Math.floor(Math.random() * 90000) + 10000}`;
@@ -802,32 +834,48 @@ const testCases = [
         category: 'Pause & Lifecycle',
         name: 'Timeup Interruption & Finish',
         run: async () => {
-            // Restore session
+            // This test needs a fresh game since TC-API-08 destroys the game instance
             await resetApp();
             const doc = getIframeDoc();
+            const win = iframe.contentWindow;
+            
+            // Start a new game session
             const input = doc.getElementById('username-input');
             const startBtn = doc.getElementById('start-btn');
-            input.value = 'TimeupTester';
+            if (!input || !startBtn) return { success: false, message: 'Title screen elements missing.' };
+            
+            input.value = 'TimeupTestUser';
             startBtn.click();
-            await sleep(2000);
+            await sleep(2000); // Wait for Phaser game to fully initialize
             
             const scene = getActiveScene();
-            if (!scene) return { success: false, message: 'Game failed to start.' };
+            if (!scene) return { success: false, message: 'Game not running after login.' };
             
             log('Force setting timeLeft to 1 second and triggering tick...');
+            
+            // Ensure game is in a clean state
+            scene.gameEnded = false;
+            scene.isPaused = false;
+            
             scene.timeLeft = 1;
-            scene.tick();
-            await sleep(1000); // Wait for transition with safety buffer
+            scene.tick(); // This decrements to 0 and calls endGame()
             
-            const resultScreen = doc.getElementById('result-screen');
-            const rankingScreen = doc.getElementById('ranking-screen');
-            const isFinished = resultScreen.classList.contains('active') || rankingScreen.classList.contains('active');
-            const isInputBlocked = !scene.input.enabled;
+            // Verify immediate effects: input should be blocked right away
+            const isInputBlockedImmediately = !scene.input.enabled;
+            const isGameEnded = scene.gameEnded;
             
-            if (isFinished && isInputBlocked) {
+            // endGame() uses delayedCall(2000, ...) before showing result screen
+            // Wait 3 seconds to allow the delayed transition to complete
+            await sleep(3000);
+            
+            const resultScreenEl = doc.getElementById('result-screen');
+            const rankingScreenEl = doc.getElementById('ranking-screen');
+            const isFinished = resultScreenEl.classList.contains('active') || rankingScreenEl.classList.contains('active');
+            
+            if (isGameEnded && isInputBlockedImmediately && isFinished) {
                 return { success: true, message: `Verified: System successfully blocked input on timeup and transitioned to game end (Result/Ranking screen active).` };
             }
-            return { success: false, message: `Transition failure. Game end screen active: ${isFinished}, Game input blocked: ${isInputBlocked}` };
+            return { success: false, message: `Transition failure. Game end screen active: ${isFinished}, Game input blocked immediately: ${isInputBlockedImmediately}, gameEnded: ${isGameEnded}` };
         }
     }
 ];
@@ -938,6 +986,14 @@ async function runSingleTestCase(tc) {
 async function runAllTests() {
     disableControls(true);
     log('=== Starting All Automated Black Box Tests ===', 'info');
+    
+    try {
+        log('Resetting backend database...', 'warning');
+        await fetch('http://localhost:25563/api/reset', { method: 'POST' });
+        log('Database reset complete.', 'info');
+    } catch (e) {
+        log(`Failed to reset database: ${e.message}`, 'error');
+    }
     
     // Clear statuses back to pending
     testCases.forEach(tc => setTestStatus(tc.id, 'pending', 'Pending'));

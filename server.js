@@ -98,6 +98,16 @@ app.post('/api/score', (req, res) => {
     });
 });
 
+app.post('/api/reset', (req, res) => {
+    db.run(`DELETE FROM scores`, (err) => {
+        if (err) {
+            console.error('Error resetting database', err);
+            return res.status(500).json({ status: 'error', message: 'Internal server error' });
+        }
+        res.json({ status: 'success', message: 'Database reset successfully.' });
+    });
+});
+
 app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
 });

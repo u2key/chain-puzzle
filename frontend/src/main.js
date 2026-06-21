@@ -101,6 +101,7 @@ class GameScene extends Phaser.Scene {
         this.score = 0;
         this.timeLeft = 60;
         this.isPaused = false;
+        this.gameEnded = false;
         
         // Walls
         this.matter.add.rectangle(540, 1970, 1080, 100, { isStatic: true }); // Bottom
@@ -370,8 +371,22 @@ class GameScene extends Phaser.Scene {
     }
 
     endGame() {
-        this.timerEvent.remove();
+        if (this.gameEnded) return;
+        this.gameEnded = true;
+        
+        if (this.timerEvent) {
+            this.timerEvent.remove();
+            this.timerEvent = null;
+        }
         this.input.enabled = false;
+        
+        // Cancel any active drawing
+        if (this.isDrawing) {
+            this.selectedGems.forEach(g => { if (g && g.clearTint) g.clearTint(); });
+            this.selectedGems = [];
+            this.isDrawing = false;
+            this.graphics.clear();
+        }
         
         // Wait for objects to settle
         this.time.delayedCall(2000, () => {
@@ -471,6 +486,7 @@ backTitleBtn.addEventListener('click', () => {
     if (gameInstance) {
         gameInstance.destroy(true);
         gameInstance = null;
+        window.gameInstance = null;
     }
     showTitleScreen();
 });
