@@ -224,7 +224,7 @@ class GameScene extends Phaser.Scene {
         const n = this.selectedGems.length;
         const addScore = Math.floor(n * 100 * (1 + (n - 3) * 0.1));
         this.score += addScore;
-        this.scoreText.setText(`Score: ${this.score}`);
+        this.scoreText.setText(`Score: ${this.score.toLocaleString()}`);
 
         this.selectedGems.forEach(gem => {
             const idx = this.gems.indexOf(gem);
@@ -327,7 +327,7 @@ async function fetchRanking(listEl) {
                 listEl.innerHTML = '<li>No records yet.</li>';
             } else {
                 data.ranking.forEach(r => {
-                    listEl.innerHTML += `<li><span>${r.rank}. ${r.username}</span><span>${r.score}</span></li>`;
+                    listEl.innerHTML += `<li><span>${r.rank}. ${r.username}</span><span>${Number(r.score).toLocaleString()}</span></li>`;
                 });
             }
         }
@@ -394,7 +394,7 @@ backTitleBtn.addEventListener('click', () => {
 });
 
 retrySendBtn.addEventListener('click', () => {
-    postScore(parseInt(finalScoreDisplay.textContent));
+    postScore(parseInt(finalScoreDisplay.textContent.replace(/,/g, '')));
 });
 
 function showTitleScreen() {
@@ -404,7 +404,7 @@ function showTitleScreen() {
 
 function showResultScreen(score) {
     switchScreen(resultScreen);
-    finalScoreDisplay.textContent = score;
+    finalScoreDisplay.textContent = score.toLocaleString();
     postScore(score);
 }
 
