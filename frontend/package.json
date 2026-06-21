@@ -1,0 +1,19 @@
+{
+  "name": "frontend",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview"
+  },
+  "dependencies": {
+    "matter-js": "^0.20.0",
+    "phaser": "^3.80.1"
+  },
+  "devDependencies": {
+    "vite": "^5.2.0",
+    "@types/matter-js": "^0.19.6"
+  }
+}
