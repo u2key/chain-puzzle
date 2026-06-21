@@ -28,17 +28,16 @@ node server.js
 ```
 *Note: Make sure to run `node server.js` from the root directory, or ensure that you are in the directory where `server.js` resides.*
 
-### 2. Start the Frontend Development Server
+### 2. Start the Frontend Server
 
-The frontend uses Vite. The Vite configuration is located in the `frontend` folder, but it serves the `index.html` from the root directory.
+Instead of a bundler, the frontend is served via a simple Python HTTP server from the root directory.
 
 ```bash
-cd frontend
-npm install   # If not already installed
-npm run dev
+cd /home/ubuntu/2626
+python3 -m http.server 8080
 ```
 
-Open the local URL provided by Vite (e.g., `http://localhost:5173`) in your browser to play the game!
+Open `http://localhost:8080` in your browser to play the game!
 
 ## Features
 - **Physics Engine**: Uses Matter.js via Phaser 3 for realistic gem dropping.

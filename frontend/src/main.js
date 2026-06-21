@@ -1,4 +1,4 @@
-import Phaser from 'phaser';
+
 
 // UI Elements
 const titleScreen = document.getElementById('title-screen');
