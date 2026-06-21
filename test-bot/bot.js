@@ -146,14 +146,15 @@ document.getElementById('btn-test-tc-sc-02').addEventListener('click', async () 
         
         log(`Found 3 gems. Attempting chain trace...`);
         
-        // Simulate Drag
-        simulatePointerEvent(game, 'pointerdown', targetGems[0].x, targetGems[0].y);
+        // Simulate Drag via direct game engine method calls (Gray-box testing)
+        // This bypasses browser-specific DOM event scaling issues.
+        scene.handlePointerDown({ x: targetGems[0].x, y: targetGems[0].y });
         await sleep(100);
-        simulatePointerEvent(game, 'pointermove', targetGems[1].x, targetGems[1].y);
+        scene.handlePointerMove({ x: targetGems[1].x, y: targetGems[1].y });
         await sleep(100);
-        simulatePointerEvent(game, 'pointermove', targetGems[2].x, targetGems[2].y);
+        scene.handlePointerMove({ x: targetGems[2].x, y: targetGems[2].y });
         await sleep(100);
-        simulatePointerEvent(game, 'pointerup', targetGems[2].x, targetGems[2].y);
+        scene.handlePointerUp({ x: targetGems[2].x, y: targetGems[2].y });
         
         await sleep(500); // Wait for score calculation
         
