@@ -150,6 +150,7 @@ class GameScene extends Phaser.Scene {
         this.input.on('pointerdown', this.handlePointerDown, this);
         this.input.on('pointermove', this.handlePointerMove, this);
         this.input.on('pointerup', this.handlePointerUp, this);
+        this.input.on('gameout', this.handleGameOut, this);
         
         // Anti-stacking interval
         this.time.addEvent({ delay: 1000, callback: this.checkStacking, callbackScope: this, loop: true });
@@ -236,6 +237,12 @@ class GameScene extends Phaser.Scene {
             this.selectedGems = [];
         }
         this.graphics.clear();
+    }
+
+    handleGameOut() {
+        if (this.isDrawing) {
+            this.handlePointerUp();
+        }
     }
 
     processChain() {
