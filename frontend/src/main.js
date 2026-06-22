@@ -121,10 +121,10 @@ class GameScene extends Phaser.Scene {
         this.gaugeFill = this.add.rectangle(40, 140, 0, 20, 0x38bdf8).setOrigin(0, 0.5);
 
         // Left-bottom button platform (visual + physical)
-        this.add.rectangle(130, 1830, 260, 180, 0x0f172a, 0.8).setStrokeStyle(4, 0x334155).setDepth(90);
-        this.matter.add.rectangle(130, 1830, 260, 180, { isStatic: true });
+        this.add.rectangle(60, 1840, 120, 160, 0x0f172a, 0.8).setStrokeStyle(4, 0x334155).setDepth(90);
+        this.matter.add.rectangle(60, 1840, 120, 160, { isStatic: true });
         
-        const pauseBtn = this.add.text(130, 1830, 'PAUSE', { fontSize: '36px', fill: '#fff', backgroundColor: '#334155', padding: { x: 20, y: 10 } }).setOrigin(0.5, 0.5).setInteractive().setDepth(100);
+        const pauseBtn = this.add.text(60, 1840, '⏸', { fontSize: '36px', fill: '#fff', fontStyle: 'bold' }).setOrigin(0.5, 0.5).setInteractive().setDepth(100);
         pauseBtn.on('pointerdown', () => {
             this.pauseGame();
         });
@@ -133,10 +133,10 @@ class GameScene extends Phaser.Scene {
         this.shuffleCooldown = 3000;
 
         // Right-bottom button platform (visual + physical)
-        this.add.rectangle(950, 1830, 260, 180, 0x0f172a, 0.8).setStrokeStyle(4, 0x334155).setDepth(90);
-        this.matter.add.rectangle(950, 1830, 260, 180, { isStatic: true });
+        this.add.rectangle(1020, 1840, 120, 160, 0x0f172a, 0.8).setStrokeStyle(4, 0x334155).setDepth(90);
+        this.matter.add.rectangle(1020, 1840, 120, 160, { isStatic: true });
 
-        this.shuffleBtn = this.add.text(950, 1830, 'SHUFFLE', { fontSize: '36px', fill: '#fff', backgroundColor: '#8b5cf6', padding: { x: 20, y: 10 } }).setOrigin(0.5, 0.5).setInteractive().setDepth(100);
+        this.shuffleBtn = this.add.text(1020, 1840, '↻', { fontSize: '48px', fill: '#fff', fontStyle: 'bold' }).setOrigin(0.5, 0.5).setInteractive().setDepth(100);
         this.shuffleBtn.on('pointerdown', () => {
             this.shuffleGems();
         });
@@ -345,14 +345,12 @@ class GameScene extends Phaser.Scene {
         this.lastShuffleTime = now;
         
         if (this.shuffleBtn) {
-            this.shuffleBtn.setBackgroundColor('#475569');
-            this.shuffleBtn.setText('SHUFFLE (CD)');
+            this.shuffleBtn.setAlpha(0.3);
             this.time.addEvent({
                 delay: this.shuffleCooldown,
                 callback: () => {
                     if (this.shuffleBtn && !this.gameEnded) {
-                        this.shuffleBtn.setBackgroundColor('#8b5cf6');
-                        this.shuffleBtn.setText('SHUFFLE');
+                        this.shuffleBtn.setAlpha(1.0);
                     }
                 }
             });
