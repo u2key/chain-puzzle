@@ -472,6 +472,7 @@ startBtn.addEventListener('click', () => {
         return;
     }
     currentUsername = val;
+    localStorage.setItem('username', val);
     switchScreen(document.createElement('div')); // Hide all
     initGame();
 });
@@ -507,6 +508,10 @@ function showResultScreen(score) {
 }
 
 // Initial Boot
+const savedUsername = localStorage.getItem('username');
+if (savedUsername) {
+    usernameInput.value = savedUsername;
+}
 showTitleScreen();
 
 // Expose UI functions for black box testing
