@@ -110,8 +110,8 @@ class GameScene extends Phaser.Scene {
         this.matter.add.rectangle(540, -1800, 1080, 100, { isStatic: true }); // Top wall to prevent escape
 
         // UI
-        this.scoreText = this.add.text(40, 40, 'Score: 0', { fontSize: '48px', fill: '#fff', fontStyle: 'bold' });
-        this.timeText = this.add.text(1040, 40, 'Time: 60', { fontSize: '48px', fill: '#fff', fontStyle: 'bold' }).setOrigin(1, 0);
+        this.scoreText = this.add.text(40, 40, 'Score: 0', { fontSize: '48px', fill: '#fff', fontStyle: 'bold', fontFamily: 'monospace' });
+        this.timeText = this.add.text(1040, 40, 'Time: 60', { fontSize: '48px', fill: '#fff', fontStyle: 'bold', fontFamily: 'monospace' }).setOrigin(1, 0);
         
         // Gauge for Time Bonus
         this.bonusThreshold = 2000;
