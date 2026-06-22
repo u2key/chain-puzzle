@@ -120,7 +120,7 @@ class GameScene extends Phaser.Scene {
         this.gaugeBg = this.add.rectangle(40, 140, 400, 20, 0x334155).setOrigin(0, 0.5);
         this.gaugeFill = this.add.rectangle(40, 140, 0, 20, 0x38bdf8).setOrigin(0, 0.5);
 
-        const pauseBtn = this.add.text(450, 40, 'PAUSE', { fontSize: '36px', fill: '#fff', backgroundColor: '#334155', padding: { x: 20, y: 10 } }).setOrigin(0.5, 0).setInteractive();
+        const pauseBtn = this.add.text(350, 1800, 'PAUSE', { fontSize: '36px', fill: '#fff', backgroundColor: '#334155', padding: { x: 20, y: 10 } }).setOrigin(0.5, 0.5).setInteractive().setDepth(100);
         pauseBtn.on('pointerdown', () => {
             this.pauseGame();
         });
@@ -128,7 +128,7 @@ class GameScene extends Phaser.Scene {
         this.lastShuffleTime = 0;
         this.shuffleCooldown = 3000;
 
-        this.shuffleBtn = this.add.text(650, 40, 'SHUFFLE', { fontSize: '36px', fill: '#fff', backgroundColor: '#8b5cf6', padding: { x: 20, y: 10 } }).setOrigin(0.5, 0).setInteractive();
+        this.shuffleBtn = this.add.text(730, 1800, 'SHUFFLE', { fontSize: '36px', fill: '#fff', backgroundColor: '#8b5cf6', padding: { x: 20, y: 10 } }).setOrigin(0.5, 0.5).setInteractive().setDepth(100);
         this.shuffleBtn.on('pointerdown', () => {
             this.shuffleGems();
         });
