@@ -217,3 +217,11 @@ li {
   margin: 20px 0;
   font-family: monospace;
 }
+
+li span:last-child {
+  font-family: monospace;
+}
+
+#your-rank-val {
+  font-family: monospace;
+}
