@@ -406,7 +406,7 @@ function switchScreen(screen) {
 async function fetchRanking(listEl) {
     listEl.innerHTML = '<li>Loading...</li>';
     try {
-        const res = await fetch('http://localhost:25563/api/ranking');
+        const res = await fetch(window.location.protocol + '//' + window.location.host + '/chain-puzzle-socket/api/ranking');
         const data = await res.json();
         if (data.status === 'success') {
             listEl.innerHTML = '';
@@ -432,7 +432,7 @@ async function postScore(score) {
     const timeoutId = setTimeout(() => controller.abort(), 5000);
 
     try {
-        const res = await fetch('http://localhost:25563/api/score', {
+        const res = await fetch(window.location.protocol + '//' + window.location.host + '/chain-puzzle-socket/api/score', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ username: currentUsername, score: score }),
