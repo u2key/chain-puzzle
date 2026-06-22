@@ -105,8 +105,9 @@ class GameScene extends Phaser.Scene {
         
         // Walls
         this.matter.add.rectangle(540, 1970, 1080, 100, { isStatic: true }); // Bottom
-        this.matter.add.rectangle(-50, 960, 100, 4000, { isStatic: true }); // Left
-        this.matter.add.rectangle(1130, 960, 100, 4000, { isStatic: true }); // Right
+        this.matter.add.rectangle(-50, 500, 100, 6000, { isStatic: true }); // Left (Extended upwards)
+        this.matter.add.rectangle(1130, 500, 100, 6000, { isStatic: true }); // Right (Extended upwards)
+        this.matter.add.rectangle(540, -1800, 1080, 100, { isStatic: true }); // Top wall to prevent escape
 
         // UI
         this.scoreText = this.add.text(40, 40, 'Score: 0', { fontSize: '48px', fill: '#fff', fontStyle: 'bold' });
@@ -124,8 +125,11 @@ class GameScene extends Phaser.Scene {
             this.pauseGame();
         });
 
-        const shuffleBtn = this.add.text(650, 40, 'SHUFFLE', { fontSize: '36px', fill: '#fff', backgroundColor: '#8b5cf6', padding: { x: 20, y: 10 } }).setOrigin(0.5, 0).setInteractive();
-        shuffleBtn.on('pointerdown', () => {
+        this.lastShuffleTime = 0;
+        this.shuffleCooldown = 3000;
+
+        this.shuffleBtn = this.add.text(650, 40, 'SHUFFLE', { fontSize: '36px', fill: '#fff', backgroundColor: '#8b5cf6', padding: { x: 20, y: 10 } }).setOrigin(0.5, 0).setInteractive();
+        this.shuffleBtn.on('pointerdown', () => {
             this.shuffleGems();
         });
 
@@ -319,6 +323,26 @@ class GameScene extends Phaser.Scene {
     shuffleGems() {
         if (this.isPaused || this.timeLeft <= 0) return;
         
+        const now = this.time.now;
+        if (now - this.lastShuffleTime < this.shuffleCooldown) {
+            return;
+        }
+        this.lastShuffleTime = now;
+        
+        if (this.shuffleBtn) {
+            this.shuffleBtn.setBackgroundColor('#475569');
+            this.shuffleBtn.setText('SHUFFLE (CD)');
+            this.time.addEvent({
+                delay: this.shuffleCooldown,
+                callback: () => {
+                    if (this.shuffleBtn && !this.gameEnded) {
+                        this.shuffleBtn.setBackgroundColor('#8b5cf6');
+                        this.shuffleBtn.setText('SHUFFLE');
+                    }
+                }
+            });
+        }
+        
         // Throw all gems up into the air with random velocities to mix them up
         this.gems.forEach(gem => {
             const vx = (Math.random() - 0.5) * 40;
@@ -350,6 +374,27 @@ class GameScene extends Phaser.Scene {
             const p = this.input.activePointer;
             this.graphics.lineTo(p.x, p.y);
             this.graphics.strokePath();
+        }
+
+        // Clean up gems that went out of bounds and refill them
+        if (!this.isPaused && !this.gameEnded && this.timeLeft > 0) {
+            let lostGemsCount = 0;
+            for (let i = this.gems.length - 1; i >= 0; i--) {
+                const gem = this.gems[i];
+                if (gem) {
+                    if (gem.y > 2100 || gem.y < -2200 || gem.x < -400 || gem.x > 1480) {
+                        this.gems.splice(i, 1);
+                        gem.destroy();
+                        lostGemsCount++;
+                    }
+                } else {
+                    this.gems.splice(i, 1);
+                    lostGemsCount++;
+                }
+            }
+            if (lostGemsCount > 0) {
+                this.spawnGems(lostGemsCount);
+            }
         }
     }
 
