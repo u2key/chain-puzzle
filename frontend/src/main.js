@@ -538,6 +538,7 @@ usernameInput.addEventListener('input', () => {
 startBtn.addEventListener('click', () => {
     const val = usernameInput.value.trim();
     const renamePattern = /^(.+)==>(.+)$/;
+    const renameMatch = val.match(renamePattern);
     
     if (val.length === 0) {
         alert("Invalid username. 1-15 chars, no HTML tags.");
@@ -545,15 +546,31 @@ startBtn.addEventListener('click', () => {
     }
     
     // Allow rename pattern, validate as regular username otherwise
-    if (!renamePattern.test(val)) {
+    if (!renameMatch) {
         if (val.length > 15 || /<|>/g.test(val)) {
             alert("Invalid username. 1-15 chars, no HTML tags.");
             return;
         }
+        currentUsername = val;
+    } else {
+        // Extract new username from rename pattern for game use
+        const newUsername = renameMatch[2].trim();
+        if (newUsername.length === 0 || newUsername.length > 15 || /<|>/g.test(newUsername)) {
+            alert("Invalid new username. 1-15 chars, no HTML tags.");
+            return;
+        }
+        currentUsername = newUsername;
     }
     
-    currentUsername = val;
-    localStorage.setItem('username', val);
+    localStorage.setItem('username', currentUsername);
+    // Send rename request to server before starting game
+    if (renameMatch) {
+        fetch('http://localhost:25563/api/score', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ username: val, score: 0 })
+        }).catch(e => console.error('Rename error:', e));
+    }
     switchScreen(document.createElement('div')); // Hide all
     initGame();
 });
