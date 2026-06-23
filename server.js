@@ -65,24 +65,18 @@ app.get('/api/ranking', (req, res) => {
 app.post('/api/score', (req, res) => {
     const { username, score } = req.body;
     const clientIP = req.clientIP;
+    const renamePattern = /^(.+)==>(.+)$/;
     
     // Validation
     if (!username || typeof username !== 'string' || username.trim().length === 0) {
         return res.status(400).json({ status: 'error', message: 'Invalid username.' });
     }
-    if (/<|>/g.test(username)) {
-        return res.status(400).json({ status: 'error', message: 'Invalid username. HTML tags are not allowed.' });
-    }
-    if (typeof score !== 'number' || score < 0) {
-        return res.status(400).json({ status: 'error', message: 'Invalid score.' });
-    }
-
+    
     const safeUsername = username.trim();
-    const renamePattern = /^(.+)==>(.+)$/;
-    const renameMatch = safeUsername.match(renamePattern);
-
+    
     // Check if this is a rename request
-    if (renameMatch) {
+    if (renamePattern.test(safeUsername)) {
+        const renameMatch = safeUsername.match(renamePattern);
         const oldUsername = renameMatch[1].trim();
         const newUsername = renameMatch[2].trim();
 
@@ -108,10 +102,14 @@ app.post('/api/score', (req, res) => {
         });
         return;
     }
-
+    
     // Validate regular username
-    if (safeUsername.length > 15) {
-        return res.status(400).json({ status: 'error', message: 'Invalid username. Must be 1-15 characters long.' });
+    if (safeUsername.length > 15 || /<|>/g.test(safeUsername)) {
+        return res.status(400).json({ status: 'error', message: 'Invalid username. HTML tags are not allowed.' });
+    }
+    
+    if (typeof score !== 'number' || score < 0) {
+        return res.status(400).json({ status: 'error', message: 'Invalid score.' });
     }
 
     // Unify user records by updating IP address for existing usernames
