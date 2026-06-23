@@ -9,6 +9,12 @@ const PORT = process.env.PORT || 25563;
 app.use(cors());
 app.use(express.json());
 
+// Middleware to capture client IP
+app.use((req, res, next) => {
+    req.clientIP = req.headers['x-forwarded-for']?.split(',')[0].trim() || req.socket.remoteAddress;
+    next();
+});
+
 // Set up SQLite Database
 const dbPath = path.join(__dirname, 'backend', 'database.sqlite');
 const db = new sqlite3.Database(dbPath, (err) => {
@@ -20,6 +26,7 @@ const db = new sqlite3.Database(dbPath, (err) => {
             CREATE TABLE IF NOT EXISTS scores (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 username TEXT NOT NULL,
+                ip_address TEXT NOT NULL,
                 score INTEGER NOT NULL DEFAULT 0,
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP
             )
@@ -34,7 +41,7 @@ app.get('/api/ranking', (req, res) => {
     const query = `
         SELECT username, MAX(score) AS max_score, MIN(created_at) AS achieved_at
         FROM scores
-        GROUP BY username
+        GROUP BY username, ip_address
         ORDER BY max_score DESC, achieved_at ASC
         LIMIT 10
     `;
@@ -57,6 +64,7 @@ app.get('/api/ranking', (req, res) => {
 
 app.post('/api/score', (req, res) => {
     const { username, score } = req.body;
+    const clientIP = req.clientIP;
     
     // Validation
     if (!username || typeof username !== 'string' || username.trim().length === 0 || username.trim().length > 15) {
@@ -71,24 +79,24 @@ app.post('/api/score', (req, res) => {
 
     const safeUsername = username.trim();
 
-    db.run(`INSERT INTO scores (username, score) VALUES (?, ?)`, [safeUsername, score], function(err) {
+    db.run(`INSERT INTO scores (username, ip_address, score) VALUES (?, ?, ?)`, [safeUsername, clientIP, score], function(err) {
         if (err) {
             console.error('Error saving score', err);
             return res.status(500).json({ status: 'error', message: 'Internal server error' });
         }
         
-        // Find rank of the user
+        // Find rank of the user (considering IP for authentication)
         const query = `
-            SELECT username, MAX(score) AS max_score, MIN(created_at) AS achieved_at
+            SELECT username, ip_address, MAX(score) AS max_score, MIN(created_at) AS achieved_at
             FROM scores
-            GROUP BY username
+            GROUP BY username, ip_address
             ORDER BY max_score DESC, achieved_at ASC
         `;
         db.all(query, [], (err, rows) => {
             if (err) {
                 return res.json({ status: 'success', message: 'Score saved successfully, but failed to fetch rank.', your_rank: -1 });
             }
-            const rankIndex = rows.findIndex(row => row.username === safeUsername);
+            const rankIndex = rows.findIndex(row => row.username === safeUsername && row.ip_address === clientIP);
             res.json({
                 status: 'success',
                 message: 'Score saved successfully.',
