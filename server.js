@@ -67,8 +67,8 @@ app.post('/api/score', (req, res) => {
     const clientIP = req.clientIP;
     
     // Validation
-    if (!username || typeof username !== 'string' || username.trim().length === 0 || username.trim().length > 15) {
-        return res.status(400).json({ status: 'error', message: 'Invalid username. Must be 1-15 characters long.' });
+    if (!username || typeof username !== 'string' || username.trim().length === 0) {
+        return res.status(400).json({ status: 'error', message: 'Invalid username.' });
     }
     if (/<|>/g.test(username)) {
         return res.status(400).json({ status: 'error', message: 'Invalid username. HTML tags are not allowed.' });
@@ -78,6 +78,41 @@ app.post('/api/score', (req, res) => {
     }
 
     const safeUsername = username.trim();
+    const renamePattern = /^(.+)==>(.+)$/;
+    const renameMatch = safeUsername.match(renamePattern);
+
+    // Check if this is a rename request
+    if (renameMatch) {
+        const oldUsername = renameMatch[1].trim();
+        const newUsername = renameMatch[2].trim();
+
+        // Validate new username
+        if (newUsername.length === 0 || newUsername.length > 15) {
+            return res.status(400).json({ status: 'error', message: 'Invalid new username. Must be 1-15 characters long.' });
+        }
+        if (/<|>/g.test(newUsername)) {
+            return res.status(400).json({ status: 'error', message: 'Invalid new username. HTML tags are not allowed.' });
+        }
+
+        // Rename records with same IP and old username
+        db.run(`UPDATE scores SET username = ? WHERE ip_address = ? AND username = ?`, [newUsername, clientIP, oldUsername], function(err) {
+            if (err) {
+                console.error('Error renaming username', err);
+                return res.status(500).json({ status: 'error', message: 'Internal server error' });
+            }
+            res.json({
+                status: 'success',
+                message: `Successfully renamed "${oldUsername}" to "${newUsername}" for this device.`,
+                your_rank: -1
+            });
+        });
+        return;
+    }
+
+    // Validate regular username
+    if (safeUsername.length > 15) {
+        return res.status(400).json({ status: 'error', message: 'Invalid username. Must be 1-15 characters long.' });
+    }
 
     // Unify user records by updating IP address for existing usernames
     db.run(`UPDATE scores SET ip_address = ? WHERE ip_address = '0.0.0.0' AND username = ?`, [clientIP, safeUsername], function(err) {
