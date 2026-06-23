@@ -535,7 +535,7 @@ usernameInput.addEventListener('input', () => {
 });
 
 // Events
-startBtn.addEventListener('click', () => {
+startBtn.addEventListener('click', async () => {
     const val = usernameInput.value.trim();
     const renamePattern = /^(.+)==>(.+)$/;
     const renameMatch = val.match(renamePattern);
@@ -561,17 +561,20 @@ startBtn.addEventListener('click', () => {
         }
         currentUsername = newUsername;
         usernameInput.value = newUsername;
+        
+        // Send rename request to server before starting game
+        try {
+            await fetch(window.location.protocol + '//' + window.location.host + '/chain-puzzle-socket/api/score', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username: val, score: 0 })
+            });
+        } catch (e) {
+            console.error('Rename error:', e);
+        }
     }
     
     localStorage.setItem('username', currentUsername);
-    // Send rename request to server before starting game
-    if (renameMatch) {
-        fetch('http://localhost:25563/api/score', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ username: val, score: 0 })
-        }).catch(e => console.error('Rename error:', e));
-    }
     switchScreen(document.createElement('div')); // Hide all
     initGame();
 });
