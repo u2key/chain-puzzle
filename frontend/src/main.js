@@ -537,10 +537,21 @@ usernameInput.addEventListener('input', () => {
 // Events
 startBtn.addEventListener('click', () => {
     const val = usernameInput.value.trim();
-    if (val.length === 0 || val.length > 15 || /<|>/g.test(val)) {
+    const renamePattern = /^(.+)==>(.+)$/;
+    
+    if (val.length === 0) {
         alert("Invalid username. 1-15 chars, no HTML tags.");
         return;
     }
+    
+    // Allow rename pattern, validate as regular username otherwise
+    if (!renamePattern.test(val)) {
+        if (val.length > 15 || /<|>/g.test(val)) {
+            alert("Invalid username. 1-15 chars, no HTML tags.");
+            return;
+        }
+    }
+    
     currentUsername = val;
     localStorage.setItem('username', val);
     switchScreen(document.createElement('div')); // Hide all
