@@ -79,6 +79,14 @@ app.post('/api/score', (req, res) => {
 
     const safeUsername = username.trim();
 
+    // Unify user records by updating IP address for existing usernames
+    db.run(`UPDATE scores SET ip_address = ? WHERE ip_address = '0.0.0.0' AND username = ?`, [clientIP, safeUsername], function(err) {
+        if (err) {
+            console.error('Error updating IP address', err);
+            return res.status(500).json({ status: 'error', message: 'Internal server error' });
+        }
+    });
+  
     db.run(`INSERT INTO scores (username, ip_address, score) VALUES (?, ?, ?)`, [safeUsername, clientIP, score], function(err) {
         if (err) {
             console.error('Error saving score', err);
