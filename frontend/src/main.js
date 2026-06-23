@@ -560,6 +560,7 @@ startBtn.addEventListener('click', () => {
             return;
         }
         currentUsername = newUsername;
+        usernameInput.value = newUsername;
     }
     
     localStorage.setItem('username', currentUsername);
