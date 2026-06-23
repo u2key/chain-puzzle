@@ -554,6 +554,7 @@ startBtn.addEventListener('click', async () => {
         currentUsername = val;
     } else {
         // Extract new username from rename pattern for game use
+        const oldUsername = renameMatch[1].trim();
         const newUsername = renameMatch[2].trim();
         if (newUsername.length === 0 || newUsername.length > 15 || /<|>/g.test(newUsername)) {
             alert("Invalid new username. 1-15 chars, no HTML tags.");
@@ -564,13 +565,20 @@ startBtn.addEventListener('click', async () => {
         
         // Send rename request to server before starting game
         try {
-            await fetch(window.location.protocol + '//' + window.location.host + '/chain-puzzle-socket/api/score', {
+            const res = await fetch(window.location.protocol + '//' + window.location.host + '/chain-puzzle-socket/api/rename', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ username: val, score: 0 })
+                body: JSON.stringify({ oldUsername, newUsername })
             });
+            if (!res.ok) {
+                const error = await res.json();
+                alert(`Rename failed: ${error.message}`);
+                return;
+            }
         } catch (e) {
             console.error('Rename error:', e);
+            alert('Rename failed: Network error');
+            return;
         }
     }
     

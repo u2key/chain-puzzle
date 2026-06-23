@@ -65,7 +65,6 @@ app.get('/api/ranking', (req, res) => {
 app.post('/api/score', (req, res) => {
     const { username, score } = req.body;
     const clientIP = req.clientIP;
-    const renamePattern = /^(.+)==>(.+)$/;
     
     // Validation
     if (!username || typeof username !== 'string' || username.trim().length === 0) {
@@ -73,35 +72,6 @@ app.post('/api/score', (req, res) => {
     }
     
     const safeUsername = username.trim();
-    
-    // Check if this is a rename request
-    if (renamePattern.test(safeUsername)) {
-        const renameMatch = safeUsername.match(renamePattern);
-        const oldUsername = renameMatch[1].trim();
-        const newUsername = renameMatch[2].trim();
-
-        // Validate new username
-        if (newUsername.length === 0 || newUsername.length > 15) {
-            return res.status(400).json({ status: 'error', message: 'Invalid new username. Must be 1-15 characters long.' });
-        }
-        if (/<|>/g.test(newUsername)) {
-            return res.status(400).json({ status: 'error', message: 'Invalid new username. HTML tags are not allowed.' });
-        }
-
-        // Rename records with same IP and old username
-        db.run(`UPDATE scores SET username = ? WHERE ip_address = ? AND username = ?`, [newUsername, clientIP, oldUsername], function(err) {
-            if (err) {
-                console.error('Error renaming username', err);
-                return res.status(500).json({ status: 'error', message: 'Internal server error' });
-            }
-            res.json({
-                status: 'success',
-                message: `Successfully renamed "${oldUsername}" to "${newUsername}" for this device.`,
-                your_rank: -1
-            });
-        });
-        return;
-    }
     
     // Validate regular username
     if (safeUsername.length > 15 || /<|>/g.test(safeUsername)) {
@@ -154,6 +124,37 @@ app.post('/api/reset', (req, res) => {
             return res.status(500).json({ status: 'error', message: 'Internal server error' });
         }
         res.json({ status: 'success', message: 'Database reset successfully.' });
+    });
+});
+
+app.post('/api/rename', (req, res) => {
+    const { oldUsername, newUsername } = req.body;
+    const clientIP = req.clientIP;
+    
+    // Validation
+    if (!oldUsername || typeof oldUsername !== 'string' || oldUsername.trim().length === 0) {
+        return res.status(400).json({ status: 'error', message: 'Invalid old username.' });
+    }
+    if (!newUsername || typeof newUsername !== 'string' || newUsername.trim().length === 0 || newUsername.trim().length > 15) {
+        return res.status(400).json({ status: 'error', message: 'Invalid new username. Must be 1-15 characters long.' });
+    }
+    if (/<|>/g.test(newUsername)) {
+        return res.status(400).json({ status: 'error', message: 'Invalid new username. HTML tags are not allowed.' });
+    }
+    
+    const safeOldUsername = oldUsername.trim();
+    const safeNewUsername = newUsername.trim();
+    
+    // Rename records with same IP and old username
+    db.run(`UPDATE scores SET username = ? WHERE ip_address = ? AND username = ?`, [safeNewUsername, clientIP, safeOldUsername], function(err) {
+        if (err) {
+            console.error('Error renaming username', err);
+            return res.status(500).json({ status: 'error', message: 'Internal server error' });
+        }
+        res.json({
+            status: 'success',
+            message: `Successfully renamed "${safeOldUsername}" to "${safeNewUsername}" for this device.`
+        });
     });
 });
 
