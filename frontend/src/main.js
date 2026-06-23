@@ -11,6 +11,7 @@ const startBtn = document.getElementById('start-btn');
 const resumeBtn = document.getElementById('resume-btn');
 const backTitleBtn = document.getElementById('back-title-btn');
 const retrySendBtn = document.getElementById('retry-send-btn');
+const renameWarning = document.getElementById('rename-warning');
 
 const titleRankingList = document.getElementById('title-ranking-list');
 const finalRankingList = document.getElementById('final-ranking-list');
@@ -521,6 +522,17 @@ async function postScore(score) {
         retrySendBtn.classList.remove('hidden');
     }
 }
+
+// Monitor username input for rename pattern
+usernameInput.addEventListener('input', () => {
+    const val = usernameInput.value.trim();
+    const renamePattern = /^(.+)==>(.+)$/;
+    if (renamePattern.test(val)) {
+        renameWarning.classList.remove('hidden');
+    } else {
+        renameWarning.classList.add('hidden');
+    }
+});
 
 // Events
 startBtn.addEventListener('click', () => {
