@@ -248,3 +248,54 @@ li span:last-child {
   font-size: 0.9rem;
   font-weight: 600;
 }
+
+/* Server Message Banner */
+.server-message-banner {
+  position: absolute;
+  top: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 90%;
+  max-width: 400px;
+  z-index: 1000;
+  pointer-events: auto;
+  animation: slideDown 0.5s ease-out;
+}
+
+.server-message-banner.hidden {
+  display: none !important;
+}
+
+.server-message-content {
+  background: rgba(15, 23, 42, 0.95);
+  border: 2px solid #38bdf8;
+  border-radius: 12px;
+  padding: 12px 20px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  box-shadow: 0 4px 15px rgba(56, 189, 248, 0.3);
+  backdrop-filter: blur(4px);
+}
+
+.server-message-icon {
+  font-size: 1.5rem;
+}
+
+#server-message-text {
+  font-size: 1rem;
+  color: #f8fafc;
+  line-height: 1.4;
+  flex-grow: 1;
+}
+
+@keyframes slideDown {
+  from {
+    top: -50px;
+    opacity: 0;
+  }
+  to {
+    top: 20px;
+    opacity: 1;
+  }
+}

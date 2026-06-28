@@ -200,6 +200,14 @@ class GameScene extends Phaser.Scene {
             }
         });
         
+        this.input.keyboard.on('keydown-ESC', (event) => {
+            if (this.isPaused) {
+                this.resumeGame();
+            } else {
+                this.pauseGame();
+            }
+        });
+        
         // Anti-stacking interval
         this.time.addEvent({ delay: 1000, callback: this.checkStacking, callbackScope: this, loop: true });
     }
@@ -667,3 +675,36 @@ showTitleScreen();
 window.showResultScreen = showResultScreen;
 window.showTitleScreen = showTitleScreen;
 window.postScore = postScore;
+
+// Server Message Polling
+const serverMessageBanner = document.getElementById('server-message-banner');
+const serverMessageText = document.getElementById('server-message-text');
+const serverMessageIcon = document.querySelector('.server-message-icon');
+
+async function fetchServerMessage() {
+    try {
+        const res = await fetch(window.location.protocol + '//' + window.location.host + '/chain-puzzle-socket/api/message');
+        if (!res.ok) return;
+        const data = await res.json();
+        
+        if (data.status === 'success' && data.message && data.message.active) {
+            serverMessageText.textContent = data.message.text;
+            
+            // Set icon based on type
+            if (data.message.type === 'tip') serverMessageIcon.textContent = '💡';
+            else if (data.message.type === 'warning') serverMessageIcon.textContent = '⚠️';
+            else serverMessageIcon.textContent = 'ℹ️';
+            
+            serverMessageBanner.classList.remove('hidden');
+        } else {
+            serverMessageBanner.classList.add('hidden');
+        }
+    } catch (e) {
+        // Silently fail on network error for messages
+        serverMessageBanner.classList.add('hidden');
+    }
+}
+
+// Initial fetch and poll every 30 seconds
+fetchServerMessage();
+setInterval(fetchServerMessage, 30000);

@@ -15,6 +15,13 @@ app.use((req, res, next) => {
     next();
 });
 
+// Server Message State
+let currentServerMessage = {
+    type: 'tip',
+    text: 'Welcome to Drop & Connect! Connect more gems to get a Time Bonus!',
+    active: true
+};
+
 // Set up SQLite Database
 const dbPath = path.join(__dirname, 'backend', 'database.sqlite');
 const db = new sqlite3.Database(dbPath, (err) => {
@@ -155,6 +162,27 @@ app.post('/api/rename', (req, res) => {
             status: 'success',
             message: `Successfully renamed "${safeOldUsername}" to "${safeNewUsername}" for this device.`
         });
+    });
+});
+
+app.get('/api/message', (req, res) => {
+    res.json({
+        status: 'success',
+        message: currentServerMessage
+    });
+});
+
+app.post('/api/message', (req, res) => {
+    const { type, text, active } = req.body;
+    
+    if (text !== undefined) currentServerMessage.text = text;
+    if (type !== undefined) currentServerMessage.type = type;
+    if (active !== undefined) currentServerMessage.active = !!active;
+    
+    res.json({
+        status: 'success',
+        message: 'Server message updated',
+        current_message: currentServerMessage
     });
 });
 
