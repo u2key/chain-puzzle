@@ -161,6 +161,45 @@ class GameScene extends Phaser.Scene {
         this.input.on('pointerup', this.handlePointerUp, this);
         this.input.on('gameout', this.handleGameOut, this);
         
+        // Keyboard inputs
+        this.input.keyboard.addCapture('SPACE');
+        
+        this.input.keyboard.on('keydown-S', (event) => {
+            if (event.shiftKey) {
+                this.shuffleGems();
+            } else if (!this.isDrawing) {
+                this.handlePointerDown(this.input.activePointer);
+            }
+        });
+        
+        this.input.keyboard.on('keyup-S', (event) => {
+            if (!event.shiftKey && this.isDrawing) {
+                this.handlePointerUp(this.input.activePointer);
+            }
+        });
+        
+        this.input.keyboard.on('keydown-SPACE', (event) => {
+            if (!this.isDrawing) {
+                this.handlePointerDown(this.input.activePointer);
+            }
+        });
+        
+        this.input.keyboard.on('keyup-SPACE', (event) => {
+            if (this.isDrawing) {
+                this.handlePointerUp(this.input.activePointer);
+            }
+        });
+        
+        this.input.keyboard.on('keydown-Q', (event) => {
+            if (event.shiftKey) {
+                if (this.isPaused) {
+                    this.resumeGame();
+                } else {
+                    this.pauseGame();
+                }
+            }
+        });
+        
         // Anti-stacking interval
         this.time.addEvent({ delay: 1000, callback: this.checkStacking, callbackScope: this, loop: true });
     }
