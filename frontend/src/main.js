@@ -410,13 +410,49 @@ class GameScene extends Phaser.Scene {
             });
         }
         
-        // Throw all gems up into the air with random velocities to mix them up
-        this.gems.forEach(gem => {
-            const vx = (Math.random() - 0.5) * 40;
-            const vy = -(Math.random() * 30 + 20); // Strong upward velocity
+        const typesConfig = this.registry.get('typesConfig');
+        
+        // Gather all current gem types
+        const types = this.gems.map(gem => gem.gemType);
+        
+        // Fisher-Yates shuffle for the types (colors)
+        for (let i = types.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            const temp = types[i];
+            types[i] = types[j];
+            types[j] = temp;
+        }
+        
+        // Re-assign types and textures to gems in place, and apply a strong multidirectional force
+        this.gems.forEach((gem, idx) => {
+            if (!gem) return;
+            
+            const newType = types[idx];
+            gem.gemType = newType;
+            
+            // Set the new texture
+            const imgKey = `gem_img_${newType}`;
+            const fallbackKey = `gem_fallback_${newType}`;
+            const finalKey = this.textures.exists(imgKey) ? imgKey : fallbackKey;
+            gem.setTexture(finalKey);
+            
+            // Update display size to match the new type
+            const r = typesConfig[newType - 1].radius;
+            gem.setDisplaySize(r * 2, r * 2);
+            
+            // Apply a strong velocity to simulate a violent collision
+            // Bias upward for lower gems so they visibly jump
+            const angle = Math.random() * Math.PI * 2;
+            const speed = Phaser.Math.Between(48, 64);
+            const vx = Math.cos(angle) * speed;
+            let vy = Math.sin(angle) * speed;
+            
+            // The lower the gem (higher y), the stronger the upward bias
+            const depthRatio = Math.max(0, (gem.y - 400)) / 1520; // 0 at top, ~1 at bottom
+            vy = vy - (speed * 0.6 * depthRatio) - 8;
+            
             this.matter.body.setVelocity(gem.body, { x: vx, y: vy });
-            // Also spin them
-            this.matter.body.setAngularVelocity(gem.body, (Math.random() - 0.5) * 0.5);
+            this.matter.body.setAngularVelocity(gem.body, (Math.random() - 0.5) * 3.0);
         });
     }
 
