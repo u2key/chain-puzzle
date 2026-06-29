@@ -23,6 +23,10 @@ const errorMsg = document.getElementById('error-message');
 let gameInstance = null;
 let currentUsername = "";
 
+// URL parameter flags (parsed once at startup)
+const noFlash = new URLSearchParams(window.location.search).has('no-flash')
+    || window.location.href.includes('no-flash');
+
 // Initialize Game
 function initGame() {
     if (gameInstance) {
@@ -360,7 +364,9 @@ class GameScene extends Phaser.Scene {
         });
 
         // Effect
-        this.cameras.main.flash(200, 255, 255, 255);
+        if (!noFlash) {
+            this.cameras.main.flash(200, 255, 255, 255);
+        }
         
         const needed = this.maxGems - this.gems.length;
         if (needed > 0) {
