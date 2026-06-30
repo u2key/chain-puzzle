@@ -219,10 +219,18 @@ class GameScene extends Phaser.Scene {
     spawnGems(count) {
         const typesConfig = this.registry.get('typesConfig');
         for (let i = 0; i < count; i++) {
-            const x = Phaser.Math.Between(100, 980);
             const y = Phaser.Math.Between(-1500, -100);
             const type = Phaser.Math.Between(1, 5);
             const r = typesConfig[type - 1].radius;
+            
+            // Bias spawn X toward existing same-type gems for natural clustering
+            let x = Phaser.Math.Between(100, 980);
+            const sameTypeGems = this.gems.filter(g => g && g.gemType === type && g.y > 0 && g.y < 1920);
+            if (sameTypeGems.length > 0 && Math.random() < 0.6) {
+                const target = Phaser.Utils.Array.GetRandom(sameTypeGems);
+                // Spawn near the target with some spread
+                x = Phaser.Math.Clamp(target.x + Phaser.Math.Between(-150, 150), 100, 980);
+            }
             
             const imgKey = `gem_img_${type}`;
             const fallbackKey = `gem_fallback_${type}`;
@@ -498,6 +506,53 @@ class GameScene extends Phaser.Scene {
             if (lostGemsCount > 0) {
                 this.spawnGems(lostGemsCount);
             }
+
+            // Subtle same-type attraction: apply a very weak force pulling same-type nearby gems together
+            this.applySameTypeAttraction();
+        }
+    }
+
+    applySameTypeAttraction() {
+        const attractionStrength = 0.000003;
+        const maxDistance = 350; // Only attract within this range
+        const len = this.gems.length;
+        
+        for (let i = 0; i < len; i++) {
+            const gemA = this.gems[i];
+            if (!gemA || !gemA.body) continue;
+            
+            let fx = 0;
+            let fy = 0;
+            
+            for (let j = i + 1; j < len; j++) {
+                const gemB = this.gems[j];
+                if (!gemB || !gemB.body) continue;
+                if (gemA.gemType !== gemB.gemType) continue;
+                
+                const dx = gemB.x - gemA.x;
+                const dy = gemB.y - gemA.y;
+                const distSq = dx * dx + dy * dy;
+                
+                if (distSq < maxDistance * maxDistance && distSq > 100) {
+                    const dist = Math.sqrt(distSq);
+                    const force = attractionStrength * dist;
+                    const nx = dx / dist;
+                    const ny = dy / dist;
+                    
+                    fx += nx * force;
+                    fy += ny * force;
+                    
+                    // Apply equal and opposite force to gemB
+                    this.matter.body.applyForce(gemB.body, gemB.body.position, {
+                        x: -nx * force,
+                        y: -ny * force
+                    });
+                }
+            }
+            
+            if (fx !== 0 || fy !== 0) {
+                this.matter.body.applyForce(gemA.body, gemA.body.position, { x: fx, y: fy });
+            }
         }
     }
 
@@ -536,8 +591,33 @@ class GameScene extends Phaser.Scene {
             this.graphics.clear();
         }
         
-        // Wait for objects to settle
-        this.time.delayedCall(2000, () => {
+        // Display Time Up and score in the center of the game screen
+        const timeUpText = this.add.text(540, 860, "Time Up!", {
+            fontSize: '96px', fill: '#fff', fontStyle: 'bold', fontFamily: 'Inter, sans-serif',
+            stroke: '#0f172a', strokeThickness: 8
+        }).setOrigin(0.5).setAlpha(0).setDepth(200);
+        
+        const scoreDisplay = this.add.text(540, 980, `Score: ${this.score.toLocaleString()}`, {
+            fontSize: '72px', fill: '#fde047', fontStyle: 'bold', fontFamily: 'monospace',
+            stroke: '#0f172a', strokeThickness: 6
+        }).setOrigin(0.5).setAlpha(0).setDepth(200);
+        
+        // Fade in Time Up text
+        this.tweens.add({
+            targets: timeUpText,
+            alpha: 1, y: 810,
+            duration: 500, ease: 'Back.easeOut'
+        });
+        
+        // Fade in score text slightly after
+        this.tweens.add({
+            targets: scoreDisplay,
+            alpha: 1, y: 940,
+            delay: 300, duration: 500, ease: 'Back.easeOut'
+        });
+        
+        // Wait for objects to settle then transition
+        this.time.delayedCall(3000, () => {
             this.scene.pause();
             showResultScreen(this.score);
         });
