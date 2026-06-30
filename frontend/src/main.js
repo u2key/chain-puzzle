@@ -513,13 +513,17 @@ class GameScene extends Phaser.Scene {
     }
 
     applySameTypeAttraction() {
-        const attractionStrength = 0.000003;
-        const maxDistance = 350; // Only attract within this range
+        const attractionStrength = 0.0000008;
+        const maxDistance = 300; // Only attract within this range
+        const minDistSq = 40000; // ~200px: don't attract gems that are already close
         const len = this.gems.length;
         
         for (let i = 0; i < len; i++) {
             const gemA = this.gems[i];
             if (!gemA || !gemA.body) continue;
+            // Skip gems that are nearly stationary to prevent vibration
+            const velA = gemA.body.velocity;
+            if (Math.abs(velA.x) < 0.3 && Math.abs(velA.y) < 0.3) continue;
             
             let fx = 0;
             let fy = 0;
@@ -533,7 +537,7 @@ class GameScene extends Phaser.Scene {
                 const dy = gemB.y - gemA.y;
                 const distSq = dx * dx + dy * dy;
                 
-                if (distSq < maxDistance * maxDistance && distSq > 100) {
+                if (distSq < maxDistance * maxDistance && distSq > minDistSq) {
                     const dist = Math.sqrt(distSq);
                     const force = attractionStrength * dist;
                     const nx = dx / dist;
@@ -542,11 +546,14 @@ class GameScene extends Phaser.Scene {
                     fx += nx * force;
                     fy += ny * force;
                     
-                    // Apply equal and opposite force to gemB
-                    this.matter.body.applyForce(gemB.body, gemB.body.position, {
-                        x: -nx * force,
-                        y: -ny * force
-                    });
+                    // Apply equal and opposite force to gemB only if it's also moving
+                    const velB = gemB.body.velocity;
+                    if (Math.abs(velB.x) >= 0.3 || Math.abs(velB.y) >= 0.3) {
+                        this.matter.body.applyForce(gemB.body, gemB.body.position, {
+                            x: -nx * force,
+                            y: -ny * force
+                        });
+                    }
                 }
             }
             
@@ -592,6 +599,14 @@ class GameScene extends Phaser.Scene {
         }
         
         // Display Time Up and score in the center of the game screen
+        const overlay = this.add.rectangle(540, 960, 1080, 1920, 0x0f172a, 0)
+            .setDepth(199);
+        this.tweens.add({
+            targets: overlay,
+            fillAlpha: 0.7,
+            duration: 500, ease: 'Linear'
+        });
+        
         const timeUpText = this.add.text(540, 860, "Time Up!", {
             fontSize: '96px', fill: '#fff', fontStyle: 'bold', fontFamily: 'Inter, sans-serif',
             stroke: '#0f172a', strokeThickness: 8
@@ -600,6 +615,10 @@ class GameScene extends Phaser.Scene {
         const scoreDisplay = this.add.text(540, 980, `Score: ${this.score.toLocaleString()}`, {
             fontSize: '72px', fill: '#fde047', fontStyle: 'bold', fontFamily: 'monospace',
             stroke: '#0f172a', strokeThickness: 6
+        }).setOrigin(0.5).setAlpha(0).setDepth(200);
+        
+        const tapHint = this.add.text(540, 1080, 'Tap to continue', {
+            fontSize: '36px', fill: '#94a3b8', fontFamily: 'Inter, sans-serif'
         }).setOrigin(0.5).setAlpha(0).setDepth(200);
         
         // Fade in Time Up text
@@ -616,10 +635,31 @@ class GameScene extends Phaser.Scene {
             delay: 300, duration: 500, ease: 'Back.easeOut'
         });
         
-        // Wait for objects to settle then transition
-        this.time.delayedCall(3000, () => {
-            this.scene.pause();
-            showResultScreen(this.score);
+        // Fade in tap hint with a blink
+        this.tweens.add({
+            targets: tapHint,
+            alpha: 1,
+            delay: 1000, duration: 500,
+            onComplete: () => {
+                this.tweens.add({
+                    targets: tapHint,
+                    alpha: 0.3,
+                    duration: 800,
+                    yoyo: true,
+                    repeat: -1
+                });
+            }
+        });
+        
+        // Wait for click/tap to transition
+        const finalScore = this.score;
+        this.time.delayedCall(1000, () => {
+            this.input.enabled = true;
+            this.input.once('pointerdown', () => {
+                this.input.enabled = false;
+                this.scene.pause();
+                showResultScreen(finalScore);
+            });
         });
     }
 }
