@@ -313,7 +313,10 @@ class GameScene extends Phaser.Scene {
 
     handleGameOut() {
         if (this.isDrawing) {
-            this.handlePointerUp();
+            this.isDrawing = false;
+            this.selectedGems.forEach(g => g.clearTint());
+            this.selectedGems = [];
+            this.graphics.clear();
         }
     }
 
