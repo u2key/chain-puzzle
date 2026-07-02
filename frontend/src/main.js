@@ -107,6 +107,7 @@ class GameScene extends Phaser.Scene {
         this.timeLeft = 60;
         this.isPaused = false;
         this.gameEnded = false;
+        this.pointerWentOffScreen = false;
         
         // Walls
         this.matter.add.rectangle(540, 1970, 1080, 100, { isStatic: true }); // Bottom
@@ -167,6 +168,8 @@ class GameScene extends Phaser.Scene {
         
         // Keyboard inputs
         this.input.keyboard.addCapture('SPACE');
+        this.keyS = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.S);
+        this.keySpace = this.input.keyboard.addKey(Phaser.Input.Keyboard.KeyCodes.SPACE);
         
         this.input.keyboard.on('keydown-S', (event) => {
             if (event.shiftKey) {
@@ -261,6 +264,19 @@ class GameScene extends Phaser.Scene {
 
     handlePointerDown(pointer) {
         if (this.isPaused || this.timeLeft <= 0) return;
+        
+        // Reset pointerWentOffScreen flag
+        this.pointerWentOffScreen = false;
+        
+        // If we were already drawing, it means pointer was released off-screen and we are starting a new drag.
+        // We should cancel the previous chain first.
+        if (this.isDrawing) {
+            this.selectedGems.forEach(g => g.clearTint());
+            this.selectedGems = [];
+            this.isDrawing = false;
+            this.graphics.clear();
+        }
+        
         const clickedBody = this.matter.intersectPoint(pointer.x, pointer.y);
         if (clickedBody.length > 0) {
             const gem = clickedBody[0].gameObject;
@@ -275,6 +291,12 @@ class GameScene extends Phaser.Scene {
     handlePointerMove(pointer) {
         if (!this.isDrawing || this.isPaused || this.timeLeft <= 0) return;
         
+        // If mouse/touch was released off-screen (or keyup happened), finish drawing
+        if (!pointer.isDown && !this.keyS?.isDown && !this.keySpace?.isDown) {
+            this.handlePointerUp(pointer);
+            return;
+        }
+        
         const hoveredBody = this.matter.intersectPoint(pointer.x, pointer.y);
         if (hoveredBody.length > 0) {
             const gem = hoveredBody[0].gameObject;
@@ -283,15 +305,27 @@ class GameScene extends Phaser.Scene {
                 if (this.selectedGems.length >= 2 && gem === this.selectedGems[this.selectedGems.length - 2]) {
                     const removed = this.selectedGems.pop();
                     removed.clearTint();
+                    this.pointerWentOffScreen = false; // Reset off-screen flag on rollback
                 } 
                 // Check addition rules
                 else if (!this.selectedGems.includes(gem)) {
                     const lastGem = this.selectedGems[this.selectedGems.length - 1];
-                    const distance = Phaser.Math.Distance.Between(lastGem.x, lastGem.y, gem.x, gem.y);
-                    const avgDiameter = (lastGem.displayWidth + gem.displayWidth) / 2;
-                    if (gem.gemType === lastGem.gemType && distance <= avgDiameter * 1.2) {
-                        this.selectedGems.push(gem);
-                        gem.setTint(0x888888);
+                    
+                    // If pointer went off-screen, it must return close to the last gem first before adding new ones
+                    if (this.pointerWentOffScreen) {
+                        const pointerDist = Phaser.Math.Distance.Between(pointer.x, pointer.y, lastGem.x, lastGem.y);
+                        if (pointerDist < lastGem.displayWidth * 1.5) {
+                            this.pointerWentOffScreen = false;
+                        }
+                    }
+                    
+                    if (!this.pointerWentOffScreen) {
+                        const distance = Phaser.Math.Distance.Between(lastGem.x, lastGem.y, gem.x, gem.y);
+                        const avgDiameter = (lastGem.displayWidth + gem.displayWidth) / 2;
+                        if (gem.gemType === lastGem.gemType && distance <= avgDiameter * 1.2) {
+                            this.selectedGems.push(gem);
+                            gem.setTint(0x888888);
+                        }
                     }
                 }
             }
@@ -301,6 +335,7 @@ class GameScene extends Phaser.Scene {
     handlePointerUp(pointer) {
         if (!this.isDrawing || this.isPaused) return;
         this.isDrawing = false;
+        this.pointerWentOffScreen = false;
         
         if (this.selectedGems.length >= 3) {
             this.processChain();
@@ -313,10 +348,7 @@ class GameScene extends Phaser.Scene {
 
     handleGameOut() {
         if (this.isDrawing) {
-            this.isDrawing = false;
-            this.selectedGems.forEach(g => g.clearTint());
-            this.selectedGems = [];
-            this.graphics.clear();
+            this.pointerWentOffScreen = true;
         }
     }
 
