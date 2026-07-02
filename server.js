@@ -37,7 +37,18 @@ const db = new sqlite3.Database(dbPath, (err) => {
                 score INTEGER NOT NULL DEFAULT 0,
                 created_at DATETIME DEFAULT CURRENT_TIMESTAMP
             )
-        `);
+        `, (tableErr) => {
+            if (!tableErr) {
+                // Add joke_en column if it does not exist
+                db.run(`ALTER TABLE scores ADD COLUMN joke_en INTEGER NOT NULL DEFAULT 0`, (alterErr) => {
+                    if (alterErr) {
+                        // Safe to ignore if column already exists
+                    } else {
+                        console.log('Added column joke_en to database.');
+                    }
+                });
+            }
+        });
     }
 });
 
@@ -45,9 +56,12 @@ const db = new sqlite3.Database(dbPath, (err) => {
 // app.use(express.static(path.join(__dirname, '../frontend/dist')));
 
 app.get('/api/ranking', (req, res) => {
+    const includeJoke = req.query.joke === 'true';
+    const whereClause = includeJoke ? '' : 'WHERE joke_en = 0';
     const query = `
         SELECT username, MAX(score) AS max_score, MIN(created_at) AS achieved_at
         FROM scores
+        ${whereClause}
         GROUP BY username, ip_address
         ORDER BY max_score DESC, achieved_at ASC
         LIMIT 10
@@ -70,7 +84,7 @@ app.get('/api/ranking', (req, res) => {
 });
 
 app.post('/api/score', (req, res) => {
-    const { username, score } = req.body;
+    const { username, score, joke } = req.body;
     const clientIP = req.clientIP;
     
     // Validation
@@ -89,6 +103,8 @@ app.post('/api/score', (req, res) => {
         return res.status(400).json({ status: 'error', message: 'Invalid score.' });
     }
 
+    const joke_en = joke ? 1 : 0;
+
     // Unify user records by updating IP address for existing usernames
     db.run(`UPDATE scores SET ip_address = ? WHERE ip_address = '0.0.0.0' AND username = ?`, [clientIP, safeUsername], function(err) {
         if (err) {
@@ -97,16 +113,18 @@ app.post('/api/score', (req, res) => {
         }
     });
   
-    db.run(`INSERT INTO scores (username, ip_address, score) VALUES (?, ?, ?)`, [safeUsername, clientIP, score], function(err) {
+    db.run(`INSERT INTO scores (username, ip_address, score, joke_en) VALUES (?, ?, ?, ?)`, [safeUsername, clientIP, score, joke_en], function(err) {
         if (err) {
             console.error('Error saving score', err);
             return res.status(500).json({ status: 'error', message: 'Internal server error' });
         }
         
         // Find rank of the user (considering IP for authentication)
+        const whereClause = joke_en === 1 ? '' : 'WHERE joke_en = 0';
         const query = `
             SELECT username, ip_address, MAX(score) AS max_score, MIN(created_at) AS achieved_at
             FROM scores
+            ${whereClause}
             GROUP BY username, ip_address
             ORDER BY max_score DESC, achieved_at ASC
         `;
