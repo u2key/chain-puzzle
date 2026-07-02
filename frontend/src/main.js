@@ -26,6 +26,8 @@ let currentUsername = "";
 // URL parameter flags (parsed once at startup)
 const noFlash = new URLSearchParams(window.location.search).has('no-flash')
     || window.location.href.includes('no-flash');
+const hasJoke = new URLSearchParams(window.location.search).has('joke')
+    || window.location.href.includes('joke');
 
 // Initialize Game
 function initGame() {
@@ -439,6 +441,36 @@ class GameScene extends Phaser.Scene {
     shuffleGems() {
         if (this.isPaused || this.timeLeft <= 0) return;
         
+        // Joke feature check: if joke mode is enabled and user is in the middle of drawing a chain,
+        // turn all gems into the same type and add them all to the current selection.
+        if (hasJoke && this.isDrawing && this.selectedGems.length > 0) {
+            const targetType = this.selectedGems[0].gemType;
+            const typesConfig = this.registry.get('typesConfig');
+            
+            this.gems.forEach(gem => {
+                if (!gem) return;
+                gem.gemType = targetType;
+                
+                // Set the texture to match the target type
+                const imgKey = `gem_img_${targetType}`;
+                const fallbackKey = `gem_fallback_${targetType}`;
+                const finalKey = this.textures.exists(imgKey) ? imgKey : fallbackKey;
+                gem.setTexture(finalKey);
+                
+                // Update size
+                const r = typesConfig[targetType - 1].radius;
+                gem.setDisplaySize(r * 2, r * 2);
+                
+                // Tint it as selected
+                gem.setTint(0x888888);
+            });
+            
+            // Build the selected gems list: keep existing order, append all other gems
+            const remainingGems = this.gems.filter(gem => !this.selectedGems.includes(gem));
+            this.selectedGems = this.selectedGems.concat(remainingGems);
+            return;
+        }
+
         const now = this.time.now;
         if (now - this.lastShuffleTime < this.shuffleCooldown) {
             return;
