@@ -260,6 +260,7 @@ li span:last-child {
   z-index: 1000;
   pointer-events: auto;
   animation: slideDown 0.5s ease-out;
+  cursor: pointer;
 }
 
 .server-message-banner.hidden {

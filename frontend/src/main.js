@@ -181,6 +181,10 @@ class GameScene extends Phaser.Scene {
                 this.handlePointerUp(this.input.activePointer);
             }
         });
+
+        this.input.keyboard.on('keydown-W', (event) => {
+            this.shuffleGems();
+        });
         
         this.input.keyboard.on('keydown-SPACE', (event) => {
             if (!this.isDrawing) {
@@ -843,6 +847,13 @@ const serverMessageBanner = document.getElementById('server-message-banner');
 const serverMessageText = document.getElementById('server-message-text');
 const serverMessageIcon = document.querySelector('.server-message-icon');
 
+let lastDismissedMessageText = "";
+
+serverMessageBanner.addEventListener('click', () => {
+    serverMessageBanner.classList.add('hidden');
+    lastDismissedMessageText = serverMessageText.textContent;
+});
+
 async function fetchServerMessage() {
     try {
         const res = await fetch(window.location.protocol + '//' + window.location.host + '/chain-puzzle-socket/api/message');
@@ -850,6 +861,10 @@ async function fetchServerMessage() {
         const data = await res.json();
         
         if (data.status === 'success' && data.message && data.message.active) {
+            if (data.message.text === lastDismissedMessageText) {
+                serverMessageBanner.classList.add('hidden');
+                return;
+            }
             serverMessageText.textContent = data.message.text;
             
             // Set icon based on type
