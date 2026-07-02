@@ -270,9 +270,11 @@ class GameScene extends Phaser.Scene {
         // Reset pointerWentOffScreen flag
         this.pointerWentOffScreen = false;
         
-        // If we were already drawing, it means pointer was released off-screen and we are starting a new drag.
-        // We should cancel the previous chain first.
-        if (this.isDrawing) {
+        // If we were already drawing, check if it's a keyboard drawing session (revive glitch)
+        const isKeyboardDrawing = this.keyS?.isDown || this.keySpace?.isDown;
+        
+        if (this.isDrawing && !isKeyboardDrawing) {
+            // Cancel previous drawing if it was a mouse drag and we clicked again
             this.selectedGems.forEach(g => g.clearTint());
             this.selectedGems = [];
             this.isDrawing = false;
@@ -283,9 +285,11 @@ class GameScene extends Phaser.Scene {
         if (clickedBody.length > 0) {
             const gem = clickedBody[0].gameObject;
             if (gem && this.gems.includes(gem)) {
-                this.isDrawing = true;
-                this.selectedGems.push(gem);
-                gem.setTint(0x888888);
+                if (!this.selectedGems.includes(gem)) {
+                    this.isDrawing = true;
+                    this.selectedGems.push(gem);
+                    gem.setTint(0x888888);
+                }
             }
         }
     }
@@ -336,6 +340,13 @@ class GameScene extends Phaser.Scene {
 
     handlePointerUp(pointer) {
         if (!this.isDrawing || this.isPaused) return;
+        
+        // If a keyboard key is still held down, do not end drawing on pointer up (revive glitch)
+        const isKeyboardActive = this.keyS?.isDown || this.keySpace?.isDown;
+        if (isKeyboardActive) {
+            return;
+        }
+        
         this.isDrawing = false;
         this.pointerWentOffScreen = false;
         
